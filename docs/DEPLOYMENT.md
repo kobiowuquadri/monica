@@ -92,9 +92,10 @@ Environment variables (Render → Environment):
 |---|---|
 | `DATABASE_URL` | Neon connection string (secret) |
 | `AUTH_SECRET` | 48+ random bytes; the Blueprint generates one. Manual: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
-| `ALLOWED_ORIGINS` | `https://<your-project>.vercel.app` (comma-separate extra origins) |
+| `ALLOWED_ORIGINS` | `https://monica-phi-one.vercel.app`. Comma-separate extra origins, e.g. add `http://localhost:5173` to run the local frontend against the live API |
+| `COOKIE_SAMESITE` | `none`: the frontend and API are different sites. Makes the cookie `Secure; Partitioned` |
 | `NODE_ENV` | `production` (enables Secure cookies; the server refuses to start without a 32+ char `AUTH_SECRET`) |
-| `TRUST_PROXY` | `2` when browsers reach the API through the Vercel rewrite (client → Vercel → Render), so rate limits use the real client IP; `true` (1 hop) if browsers call Render directly |
+| `TRUST_PROXY` | `true` (browser → Render's load balancer → app). Use `2` only if requests are first proxied through a Vercel rewrite |
 | `NASA_API_KEY` | optional |
 | `DEMO_RETENTION_HOURS` | `24` |
 | `NODE_VERSION` | `22` |
@@ -102,8 +103,8 @@ Environment variables (Render → Environment):
 After the deploy, check:
 
 ```bash
-curl https://monica-api.onrender.com/api/health   # {"status":"ok",...,"database":"configured"}
-curl https://monica-api.onrender.com/api/ready    # {"status":"ready","database":"reachable","migrationsApplied":2}
+curl https://monica-v3u4.onrender.com/api/health   # {"status":"ok",...,"database":"configured"}
+curl https://monica-v3u4.onrender.com/api/ready    # {"status":"ready","database":"reachable","migrationsApplied":2}
 ```
 
 If `DATABASE_URL` is missing, `/api/health` reports `"database":"not_configured"`, `/api/ready` returns 503, and every data endpoint returns `503 database_unavailable`. There is no silent in-memory fallback.
@@ -112,25 +113,23 @@ If `DATABASE_URL` is missing, `/api/health` reports `"database":"not_configured"
 
 ## 5. Deploy the frontend on Vercel
 
-1. `frontend/vercel.json` rewrites `/api/*` to the Render service. It currently points at the deployed API, `https://monica-v3u4.onrender.com`; change it if your service URL differs:
-   ```json
-   { "source": "/api/:path*", "destination": "https://monica-v3u4.onrender.com/api/:path*" }
-   ```
+1. `frontend/config.js` sets `LIVE_API_BASE_URL = 'https://monica-v3u4.onrender.com/api'`, and `frontend/vercel.json` allows that origin in the CSP `connect-src`. If the API URL changes, update both.
 2. Vercel → **Add New Project** → import the repo.
    - **Root Directory:** `frontend`
    - **Framework preset:** Other
    - **Build command:** none
    - **Output directory:** `.`
-3. Deploy. `frontend/config.js` uses `/api` automatically when not on localhost; it contains only public values.
+3. Deploy. The live project is `https://monica-phi-one.vercel.app`. `config.js` contains only public values.
+
+To develop the frontend against a backend on your own machine, set `USE_LOCAL_API = true` in `config.js` (it then calls `http://<same-host>:8080/api`).
 
 ## 6. CORS, cookies and environment summary
 
-- With the rewrite, browser requests are same-origin. Still set `ALLOWED_ORIGINS` to the Vercel origin, because the CSRF check accepts state-changing requests only from the same host or an allowed origin.
-- State-changing requests must also carry `X-Requested-With: monica`, which the frontend sends.
-- If you deliberately call the Render URL directly from another site instead of using the rewrite:
-  - set `COOKIE_SAMESITE=none` on Render;
-  - add the Render URL to `connect-src` in `vercel.json`;
-  - note that browsers blocking third-party cookies will break sign-in. The rewrite is the recommended setup.
+- The API accepts browser requests only from origins in `ALLOWED_ORIGINS`.
+- State-changing requests must also carry `X-Requested-With: monica` (sent by the frontend). Together with the origin check, this is the CSRF protection.
+- The session is an HttpOnly cookie (`SameSite=None; Secure; Partitioned` when `COOKIE_SAMESITE=none`) plus the same token sent as `Authorization: Bearer` from page memory.
+  - Either one authenticates.
+  - Logout revokes the server-side session for both.
 - Secrets live only in Render's environment and your local `backend/.env`. The frontend holds no secrets.
 
 ## 7. Test the deployed application

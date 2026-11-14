@@ -10,6 +10,8 @@ MONICA is a mission health console for astronauts on long-duration missions, inc
 - **Review summaries:** print-ready, with JSON export.
 - **Radiation context:** historical **NASA Curiosity RAD** measurements and **NASA DONKI** space-weather events, kept strictly separate from personal health data.
 
+**Live:** https://monica-phi-one.vercel.app (frontend, Vercel) · https://monica-v3u4.onrender.com/api/health (API, Render)
+
 Built for the **2026 NASA Space Apps Challenge**. This is a research prototype, not a validated diagnostic or treatment system, and it is not affiliated with or endorsed by NASA.
 
 Signed-out visitors land on a **public landing page** (`#/`) that describes the product, shows live counts of the imported NASA data, and renders the real Curiosity RAD chart. Sign-in and registration live at `#/signin` and `#/register`.
@@ -75,7 +77,7 @@ Public:
 - `GET /api/space-weather[?mode=recent]`
 - `GET /api/sources`, `GET /api/reference`
 
-Authentication (HttpOnly session cookie):
+Authentication (HttpOnly session cookie, or the returned token as `Authorization: Bearer`):
 - `POST /api/auth/register`, `/login`, `/logout`, `/demo`
 - `GET /api/me`
 
@@ -100,7 +102,10 @@ NASA imports are **CLI-only** (`npm run import:rad`, `npm run import:donki`); no
 ## Security and privacy
 
 - Passwords: scrypt with a per-user salt.
-- Sessions: opaque random token in an `HttpOnly` cookie, stored server-side as an HMAC. No credentials live in localStorage.
+- Sessions: opaque random token, stored server-side only as an HMAC.
+  - The browser holds it in an `HttpOnly` cookie (`SameSite=None; Secure; Partitioned` in production, because the frontend and API are different sites).
+  - It also holds the same token in page memory, sent as `Authorization: Bearer` for browsers that block cross-site cookies.
+  - No credentials live in localStorage or sessionStorage.
 - Owner check on every personal endpoint. Another user's profile returns 404, so IDs cannot be probed.
 - CSRF protection: a custom header plus an Origin check.
 - CORS limited to the origins listed in `ALLOWED_ORIGINS`.
