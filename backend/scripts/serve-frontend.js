@@ -18,7 +18,7 @@ const CSP = [
   "style-src 'self'",
   "font-src 'self'",
   "img-src 'self' data:",
-  "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080",
+  "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https://monica-v3u4.onrender.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

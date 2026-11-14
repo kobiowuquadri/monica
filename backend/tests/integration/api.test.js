@@ -112,6 +112,48 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
     assert.ok(profileA.id && profileB.id);
   });
 
+  test('cross-site frontends can authenticate with the Bearer token when cookies are blocked', async () => {
+    const email = `bearer-${Date.now()}@example.test`;
+    const reg = await fetch(`${base}/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'monica' },
+      body: JSON.stringify({ email, password: 'bearer token pass 1', displayName: 'Bearer User' }),
+    });
+    const body = await reg.json();
+    assert.equal(reg.status, 201);
+    assert.match(body.sessionToken, /^[A-Za-z0-9_-]{20,}$/);
+    // No cookie sent — only the Authorization header.
+    const authHeaders = { Authorization: `Bearer ${body.sessionToken}`, 'X-Requested-With': 'monica', 'Content-Type': 'application/json' };
+    const me = await fetch(`${base}/me`, { headers: authHeaders });
+    assert.equal(me.status, 200);
+    assert.equal((await me.json()).user.displayName, 'Bearer User');
+    // Ownership checks still apply to Bearer sessions.
+    assert.equal((await fetch(`${base}/profiles/${profileA.id}/overview`, { headers: authHeaders })).status, 404);
+    assert.equal((await fetch(`${base}/me`, { headers: { Authorization: 'Bearer not-a-real-token-123456' } })).status, 401);
+    // Logout via the header revokes the session server-side.
+    assert.equal((await fetch(`${base}/auth/logout`, { method: 'POST', headers: authHeaders, body: '{}' })).status, 200);
+    assert.equal((await fetch(`${base}/me`, { headers: authHeaders })).status, 401);
+    // The session token is stored only as a keyed hash.
+    const stored = await count('SELECT count(*) AS n FROM sessions WHERE token_hash = $1', [body.sessionToken]);
+    assert.equal(stored, 0);
+  });
+
+  test('cross-site cookie mode marks the session cookie Secure and Partitioned', async () => {
+    const { sessionCookieOptions } = await import('../../src/services/authService.js');
+    process.env.COOKIE_SAMESITE = 'none';
+    try {
+      const opts = sessionCookieOptions(new Date(Date.now() + 3600_000));
+      assert.equal(opts.sameSite, 'none');
+      assert.equal(opts.secure, true);
+      assert.equal(opts.partitioned, true);
+      assert.equal(opts.httpOnly, true);
+    } finally {
+      delete process.env.COOKIE_SAMESITE;
+    }
+    const lax = sessionCookieOptions(new Date());
+    assert.equal(lax.sameSite, 'lax');
+    assert.equal(lax.partitioned, undefined);
+  });
+
   test('cross-user access is denied for every personal endpoint', async () => {
     const id = profileA.id;
     const list = await B('GET', '/profiles');

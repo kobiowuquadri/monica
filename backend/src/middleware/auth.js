@@ -22,10 +22,22 @@ export function requireDatabase(_req, _res, next) {
   return next();
 }
 
-/** Resolves the session cookie to a user. Rejects with 401 if absent, unknown or expired. */
+/**
+ * The opaque session token, from the HttpOnly cookie or — for cross-site frontends whose browser
+ * blocks third-party cookies — an `Authorization: Bearer` header. Both map to the same session row.
+ */
+export function readSessionToken(req) {
+  const fromCookie = readCookie(req, config.cookieName);
+  if (fromCookie) return fromCookie;
+  const auth = req.get('Authorization') || '';
+  const m = auth.match(/^Bearer\s+([A-Za-z0-9_-]{20,200})$/);
+  return m ? m[1] : null;
+}
+
+/** Resolves the session token to a user. Rejects with 401 if absent, unknown or expired. */
 export async function requireAuth(req, _res, next) {
   try {
-    const token = readCookie(req, config.cookieName);
+    const token = readSessionToken(req);
     if (!token || token.length < 20 || token.length > 200) {
       throw new HttpError(401, 'not_authenticated', 'Please sign in to continue.');
     }

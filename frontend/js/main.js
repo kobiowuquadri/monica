@@ -2,7 +2,7 @@ import { h, mount, clear } from './ui/dom.js';
 import { icon, brandMark } from './ui/icons.js';
 import { fmtDateTime } from './ui/format.js';
 import { toast } from './ui/components.js';
-import { get, post, ApiError } from './api.js';
+import { get, post, ApiError, clearSessionToken } from './api.js';
 import { state, subscribe, setUser, setProfiles, selectProfile, currentProfile, setOpenCounts } from './state.js';
 import { defineRoute, startRouter, render as rerender, navigate } from './router.js';
 import * as overview from './views/overview.js';
@@ -166,6 +166,7 @@ export async function reloadProfiles() {
 
 async function signOut() {
   try { await post('/auth/logout'); } catch { /* clear local state regardless */ }
+  clearSessionToken();
   setUser(null);
   goSignedOut('#/');
   toast('Signed out.');

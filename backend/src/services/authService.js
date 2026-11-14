@@ -97,12 +97,21 @@ export async function startDemo() {
   });
 }
 
+/**
+ * Session cookie options. When the frontend calls the API from another site (COOKIE_SAMESITE=none),
+ * the cookie must be Secure and is marked Partitioned (CHIPS) so browsers that restrict third-party
+ * cookies can still keep it per top-level site. Browsers that block it entirely fall back to the
+ * Bearer token returned in the sign-in response (held in page memory only).
+ */
 export function sessionCookieOptions(expiresAt) {
-  const sameSite = (process.env.COOKIE_SAMESITE || 'lax').toLowerCase();
+  const raw = (process.env.COOKIE_SAMESITE || 'lax').toLowerCase();
+  const sameSite = ['lax', 'strict', 'none'].includes(raw) ? raw : 'lax';
+  const crossSite = sameSite === 'none';
   return {
     httpOnly: true,
-    secure: config.isProduction || sameSite === 'none',
-    sameSite: ['lax', 'strict', 'none'].includes(sameSite) ? sameSite : 'lax',
+    secure: config.isProduction || crossSite,
+    sameSite,
+    ...(crossSite ? { partitioned: true } : {}),
     path: '/',
     expires: expiresAt,
   };

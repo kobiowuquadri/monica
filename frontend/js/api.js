@@ -12,16 +12,23 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * JSON request helper. Session credentials live in an HttpOnly cookie managed by the browser —
- * no token is ever stored in localStorage or readable by scripts.
- */
+// Session token from the last sign-in, kept in page memory only (never localStorage/sessionStorage).
+// The API also sets an HttpOnly cookie; this header is the fallback for browsers that block the
+// cross-site cookie. A page reload clears it — if the cookie is blocked too, the user signs in again.
+let sessionToken = null;
+
+export function clearSessionToken() {
+  sessionToken = null;
+}
+
+/** JSON request helper. Sends the session cookie (credentials: include) and, if known, the token. */
 export async function api(path, { method = 'GET', body, idempotencyKey, timeoutMs = 20_000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const headers = { Accept: 'application/json', 'X-Requested-With': 'monica' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+  if (sessionToken) headers.Authorization = `Bearer ${sessionToken}`;
   let res;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
@@ -41,6 +48,11 @@ export async function api(path, { method = 'GET', body, idempotencyKey, timeoutM
   }
   let data = null;
   try { data = await res.json(); } catch { data = null; }
+  if (data && typeof data.sessionToken === 'string') {
+    sessionToken = data.sessionToken;
+    delete data.sessionToken; // keep it out of every other object the views see
+  }
+  if (res.status === 401) sessionToken = null;
   if (!res.ok) {
     if (res.status === 503 && (data?.error === 'database_unavailable' || data?.error === 'database_unreachable')) setConnection('db_unavailable');
     else setConnection('online');
