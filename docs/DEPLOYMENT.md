@@ -86,7 +86,7 @@ Environment variables (Render → Environment):
 | `AUTH_SECRET` | 48+ random bytes; the Blueprint generates one. Manual: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
 | `ALLOWED_ORIGINS` | `https://<your-project>.vercel.app` (comma-separate extra origins) |
 | `NODE_ENV` | `production` (enables Secure cookies; the server refuses to start without a 32+ char `AUTH_SECRET`) |
-| `TRUST_PROXY` | `true` |
+| `TRUST_PROXY` | `2` when browsers reach the API through the Vercel rewrite (client → Vercel → Render), so rate limits use the real client IP; `true` (1 hop) if browsers call Render directly |
 | `NASA_API_KEY` | optional |
 | `DEMO_RETENTION_HOURS` | `24` |
 | `NODE_VERSION` | `22` |
@@ -104,9 +104,9 @@ If `DATABASE_URL` is missing, `/api/health` reports `"database":"not_configured"
 
 ## 5. Deploy the frontend on Vercel
 
-1. Edit `frontend/vercel.json` and set the rewrite destination to your Render URL:
+1. `frontend/vercel.json` rewrites `/api/*` to the Render service. It currently points at the deployed API, `https://monica-v3u4.onrender.com`; change it if your service URL differs:
    ```json
-   { "source": "/api/:path*", "destination": "https://<your-render-service>.onrender.com/api/:path*" }
+   { "source": "/api/:path*", "destination": "https://monica-v3u4.onrender.com/api/:path*" }
    ```
 2. Vercel → **Add New Project** → import the repo.
    - **Root Directory:** `frontend`

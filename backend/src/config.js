@@ -14,6 +14,18 @@ function intOr(value, fallback) {
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+/**
+ * TRUST_PROXY: "false"/unset → do not trust X-Forwarded-For; "true" → trust one proxy hop
+ * (Render's load balancer); a number N → trust N hops (use 2 when browsers reach the API through
+ * a Vercel rewrite: client → Vercel → Render → app), so rate limits key on the real client IP.
+ */
+function parseTrustProxy(value) {
+  if (!value || value === 'false') return false;
+  if (value === 'true') return 1;
+  const n = Number.parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 && n < 10 ? n : false;
+}
+
 export const config = Object.freeze({
   nodeEnv,
   isProduction: nodeEnv === 'production',
@@ -23,7 +35,7 @@ export const config = Object.freeze({
   authSecret: process.env.AUTH_SECRET || '',
   allowedOrigins: parseOrigins(process.env.ALLOWED_ORIGINS),
   nasaApiKey: process.env.NASA_API_KEY || '',
-  trustProxy: process.env.TRUST_PROXY === 'true',
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   demoRetentionHours: intOr(process.env.DEMO_RETENTION_HOURS, 24),
   sessionTtlHours: 12,
   cookieName: 'monica_session',
@@ -42,5 +54,6 @@ export function configWarnings() {
   }
   if (config.allowedOrigins.length === 0) warnings.push('ALLOWED_ORIGINS is empty: cross-origin browser requests will be refused.');
   if (!config.nasaApiKey) warnings.push('NASA_API_KEY not set: DONKI requests use the rate-limited DEMO_KEY.');
+  if (!config.isProduction && process.env.RENDER) warnings.push('Running on Render without NODE_ENV=production: session cookies are not marked Secure.');
   return warnings;
 }

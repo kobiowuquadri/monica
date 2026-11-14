@@ -11,7 +11,7 @@ import { profilesRouter } from './routes/profiles.js';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  if (config.trustProxy) app.set('trust proxy', 1);
+  if (config.trustProxy) app.set('trust proxy', config.trustProxy);
 
   app.use(requestLogger);
   app.use(compression());

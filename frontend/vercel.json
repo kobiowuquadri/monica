@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://monica-api.onrender.com/api/:path*"
+      "destination": "https://monica-v3u4.onrender.com/api/:path*"
     }
   ],
   "headers": [
