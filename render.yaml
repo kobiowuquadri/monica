@@ -17,14 +17,16 @@ services:
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY
-        value: "2"            # client → Vercel rewrite → Render load balancer → app
+        value: "true"         # browser → Render load balancer → app (the frontend calls the API directly)
+      - key: COOKIE_SAMESITE
+        value: none           # frontend (vercel.app) and API (onrender.com) are different sites
+      - key: ALLOWED_ORIGINS
+        value: https://monica-phi-one.vercel.app
       - key: DEMO_RETENTION_HOURS
         value: "24"
       - key: AUTH_SECRET
         generateValue: true
       - key: DATABASE_URL
-        sync: false
-      - key: ALLOWED_ORIGINS
         sync: false
       - key: NASA_API_KEY
         sync: false

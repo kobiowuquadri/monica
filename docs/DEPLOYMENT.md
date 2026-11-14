@@ -3,12 +3,20 @@
 Target architecture:
 
 ```
-Browser ──HTTPS──▶ Vercel (static frontend/) ──rewrite /api/* ──▶ Render (Express, backend/) ──TLS──▶ Neon PostgreSQL
+Browser ──HTTPS──▶ Vercel  https://monica-phi-one.vercel.app   (static frontend/)
+   └────HTTPS──▶ Render  https://monica-v3u4.onrender.com/api  (Express, backend/) ──TLS──▶ Neon PostgreSQL
 ```
 
-The browser only talks to the Vercel origin. `frontend/vercel.json` rewrites `/api/*` to the Render service, so the session cookie is first-party (`HttpOnly; Secure; SameSite=Lax`) and the CSP can stay `connect-src 'self'`.
+The browser loads the static frontend from Vercel and calls the API on Render directly (`frontend/config.js` → `LIVE_API_BASE_URL`). Because the two are different sites:
 
-> **Status.** The code, schema and imports were verified locally against the Neon database. Deployment to Render and Vercel has **not** been performed: it needs your Render and Vercel accounts. Follow the steps below and run the checks in step 7.
+- **CORS.** The API allows only the origins in `ALLOWED_ORIGINS`, with credentials.
+- **CSP.** The frontend's `connect-src` lists the Render origin (`frontend/vercel.json`).
+- **Session.**
+  - With `COOKIE_SAMESITE=none`, the API sets an `HttpOnly; Secure; SameSite=None; Partitioned` cookie.
+  - The same opaque token is also returned in the sign-in response. The frontend keeps it in page memory only (never localStorage) and sends it as `Authorization: Bearer`, so sign-in still works in browsers that block cross-site cookies.
+  - In those browsers a full page reload requires signing in again.
+
+> **Status.** The API at `https://monica-v3u4.onrender.com` and the frontend at `https://monica-phi-one.vercel.app` have been deployed by the team. `/api/health` and `/api/ready` were verified against the deployed API (database reachable, 2 migrations, NASA data present). Redeploy both after pulling the latest code, then run the checks in step 7.
 
 ---
 
