@@ -1,0 +1,60 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(79, 209, 189, 0.05), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(57, 135, 229, 0.05), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { margin: 0; line-height: var(--lh-tight); font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: var(--fs-xl); }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-md); }
+h4 { font-size: var(--fs-base); }
+p { margin: 0; }
+p + p { margin-top: var(--s-1); }
+ul, ol { margin: 0; padding-left: 1.25em; }
+a { color: var(--teal); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { color: #7fe2d2; }
+small { font-size: var(--fs-sm); }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-3) 0; }
+
+/* Measurements always use tabular numerals */
+.num, .tnum, td, .metric-value, .stat-value { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'cv11'; }
+
+:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(79, 209, 189, 0.3); }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: var(--s-2); top: -48px; z-index: 100;
+  background: var(--teal); color: var(--text-on-accent); padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm); font-weight: 600; text-decoration: none;
+}
+.skip-link:focus { top: var(--s-2); }
+
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.nowrap { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

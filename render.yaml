@@ -1,0 +1,30 @@
+# Render Blueprint for the MONICA API (Express). Secrets are entered in the Render dashboard
+# (sync: false) and are never committed. See docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: monica-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: ohio            # close to Neon us-east-2
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DEMO_RETENTION_HOURS
+        value: "24"
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: NASA_API_KEY
+        sync: false

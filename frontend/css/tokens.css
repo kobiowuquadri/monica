@@ -1,0 +1,90 @@
+/* MONICA design tokens — deep-navy mission-health console.
+   Contrast verified (WCAG): body text ≥ 13:1, muted text ≥ 5.6:1, status colours ≥ 5.9:1 on all surfaces. */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0a1120;
+  --bg-sidebar: #0c1426;
+  --surface: #111c30;
+  --surface-raised: #17243c;
+  --surface-hover: #1c2b47;
+  --surface-sunken: #0d1628;
+  --border: #213049;
+  --border-strong: #2e4166;
+  --border-focus: #4fd1bd;
+
+  /* Text */
+  --text: #f2ede4;
+  --text-2: #b8c0ce;
+  --text-3: #929db0;
+  --text-on-accent: #06221e;
+
+  /* Accent & status (status colours never carry meaning alone — always icon + label) */
+  --teal: #4fd1bd;
+  --teal-strong: #2fb8a3;
+  --teal-soft: rgba(79, 209, 189, 0.12);
+  --teal-line: rgba(79, 209, 189, 0.35);
+  --amber: #f2b84b;
+  --amber-soft: rgba(242, 184, 75, 0.12);
+  --amber-line: rgba(242, 184, 75, 0.4);
+  --red: #f47d7a;
+  --red-soft: rgba(244, 125, 122, 0.12);
+  --red-line: rgba(244, 125, 122, 0.45);
+  --grey: #9aa3b2;
+  --grey-soft: rgba(154, 163, 178, 0.12);
+  --info: #6aa6f0;
+  --info-soft: rgba(106, 166, 240, 0.12);
+
+  /* Data series (validated categorical slots 1–3, dark mode, against --surface) */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-baseline: #c9c3b6;
+  --chart-grid: rgba(184, 192, 206, 0.09);
+  --chart-axis: #7f8a9d;
+
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --fs-xs: 0.75rem;    /* 12 */
+  --fs-sm: 0.8125rem;  /* 13 */
+  --fs-base: 0.9375rem;/* 15 */
+  --fs-md: 1.0625rem;  /* 17 */
+  --fs-lg: 1.25rem;    /* 20 */
+  --fs-xl: 1.625rem;   /* 26 */
+  --fs-2xl: 2rem;      /* 32 */
+  --lh-tight: 1.2;
+  --lh: 1.55;
+
+  /* 8px spacing system (4px half-step for fine adjustments) */
+  --s-05: 4px;
+  --s-1: 8px;
+  --s-2: 16px;
+  --s-3: 24px;
+  --s-4: 32px;
+  --s-5: 40px;
+  --s-6: 48px;
+  --s-8: 64px;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 8px 24px rgba(2, 6, 16, 0.45);
+  --ring: 0 0 0 3px rgba(79, 209, 189, 0.35);
+
+  --sidebar-w: 264px;
+  --topbar-h: 56px;
+  --content-max: 1240px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; }
+}

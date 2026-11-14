@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MONICA — Astronaut Health Monitoring</title>
+  <meta name="description" content="MONICA (Monitor · Observe · Navigate · Intervene · Check · Adapt) — a research prototype for astronaut health check-ins, personal trends and NASA radiation-environment context.">
+  <meta name="theme-color" content="#0a1120">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+  <script src="assets/vendor/chart.umd.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- Boot screen (replaced once the session check finishes) -->
+  <div id="boot" class="boot" role="status" aria-live="polite">
+    <div class="boot-inner">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Connecting to MONICA…</span>
+    </div>
+    <noscript><p class="boot-noscript">MONICA requires JavaScript.</p></noscript>
+  </div>
+
+  <!-- Signed-out view -->
+  <div id="auth" class="auth" hidden></div>
+
+  <!-- Signed-in application -->
+  <div id="app" class="app" hidden>
+    <aside id="sidebar" class="sidebar" aria-label="Primary">
+      <a class="brand" href="#/overview" id="brand"></a>
+      <nav class="nav" id="nav" aria-label="Main navigation"></nav>
+      <div class="sidebar-foot" id="sidebar-foot"></div>
+    </aside>
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+      <main id="main" class="content" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <div id="toasts" class="toast-region" aria-live="polite" aria-atomic="false"></div>
+</body>
+</html>

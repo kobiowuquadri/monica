@@ -1,0 +1,84 @@
+PDS_VERSION_ID                = PDS3                                          
+RECORD_TYPE                   = STREAM                                        
+FILE_RECORDS                  = 117405                                        
+                                                                              
+DATA_SET_ID                   = "MSL-M-RAD-3-RDR-V1.0"                        
+STANDARD_DATA_PRODUCT_ID      = "RAD_RDR"                                     
+PRODUCT_ID                    = "RAD_RDR_2017_253_04_24_1812_V00"             
+                                                                              
+PRODUCT_TYPE                  = "DATA"                                        
+PRODUCT_CREATION_TIME         = 2018-01-25T18:51:57                           
+                                                                              
+INSTRUMENT_HOST_NAME          = "MARS SCIENCE LABORATORY"                     
+INSTRUMENT_HOST_ID            = "MSL"                                         
+MISSION_NAME                  = "MARS SCIENCE LABORATORY"                     
+TARGET_NAME                   = "MARS"                                        
+TARGET_TYPE                   = "PLANET"                                      
+INSTRUMENT_NAME               = "RADIATION ASSESSMENT DETECTOR"               
+INSTRUMENT_ID                 = "RAD"                                         
+PRODUCER_ID                   = "SRAFKIN"                                     
+PRODUCER_FULL_NAME            = "SCOT RAFKIN"                                 
+                                                                              
+START_TIME                    = 2017-253T04:24:11                             
+STOP_TIME                     = "UNK"                                         
+                                                                              
+SPACECRAFT_CLOCK_START_COUNT  = "UNK"                                         
+SPACECRAFT_CLOCK_STOP_COUNT   = "UNK"                                         
+                                                                              
+NOTE                          = "                                             
+    RAD_RDR_2017_253_04_24_1812_V00.TXT contains one sol's worth              
+    of all observations taken from the Mars Science Laboratory Radiation      
+    Assessment Detector (RAD) for the mission elapsed sol 1812.  This         
+    file is in human readable ASCII form and the data have undergone          
+    calibration and decompression from the binary MSL RAD EDR data."          
+                                                                              
+DESCRIPTION                   = "                                             
+    This file contains data from RAD_RDR:  Radiation Assessment Detector      
+    on the Mars Science Laboratory (MSL).  There is one sol's worth of        
+    observations where each observation can have four types of data:          
+    (1) Counters, (2) Histograms, (3) Dosimetry, and (4) PHA data.            
+    These data are organized in a hierarchical fashion in which some          
+    observations may not have all four types.  These are described in         
+    the data object sections.  For additional information and details         
+    concerning data organization, science meaning, etc., please refer         
+    to the Data Set Catalog, MSLRAD_RDR_DS.CAT.                               
+    "                                                                         
+                                                                              
+/* For Observation 000 */                                                     
+                                                                              
+^OBS000_L1_TABLE         = ("RAD_RDR_2017_253_04_24_1812_V00.TXT",736 <BYTES>)
+OBJECT                   = OBS000_L1_TABLE                                    
+ NAME                    = OBS_000_L1_COUNTER                                 
+ ROWS                    = 36                                                 
+ ^STRUCTURE              = "L1_CNTR.FMT" /* Structure for L1 Counter tables */
+END_OBJECT               = OBS000_L1_TABLE                                    
+    /* Total Dose B */                                                        
+                                                                              
+^OBS000_TOT_DOSE_B_ELEMENT =                                                  
+              ("RAD_RDR_2017_253_04_24_1812_V00.TXT",18697 <BYTES>)           
+OBJECT           = OBS000_TOT_DOSE_B_ELEMENT                                  
+  NAME           = OBS_000_TOT_DOSE_B                                         
+  START_BYTE     = 1                                                          
+  BYTES          = 8                                                          
+  DATA_TYPE      = ASCII_REAL                                                 
+  UNIT           = "microGray / Hour"                                         
+  DESCRIPTION    = "                                                          
+    Dosimetry Total Dose B value                                              
+    "                                                                         
+END_OBJECT       = OBS000_TOT_DOSE_B_ELEMENT                                  
+                                                                              
+    /* Total Dose E */                                                        
+                                                                              
+^OBS000_TOT_DOSE_E_ELEMENT =                                                  
+              ("RAD_RDR_2017_253_04_24_1812_V00.TXT",18741 <BYTES>)           
+OBJECT           = OBS000_TOT_DOSE_E_ELEMENT                                  
+  NAME           = OBS_000_TOT_DOSE_E                                         
+  START_BYTE     = 1                                                          
+  BYTES          = 8                                                          
+  DATA_TYPE      = ASCII_REAL                                                 
+  UNIT           = "microGray / Hour"                                         
+  DESCRIPTION    = "                                                          
+    Dosimetry Total Dose E value                                              
+    "                                                                         
+END_OBJECT       = OBS000_TOT_DOSE_E_ELEMENT                                  
+END

@@ -1,0 +1,18 @@
+/* Print / "Save as PDF": only the report is printed, on white paper. */
+@page { margin: 16mm 14mm; }
+
+html, body { background: #fff !important; color: #111 !important; }
+.sidebar, .topbar, .skip-link, .toast-region, .no-print, .scrim, .report-toolbar { display: none !important; }
+.app { display: block !important; }
+.content { padding: 0 !important; max-width: none !important; }
+
+.report { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-size: 11pt; }
+.report a { color: #111 !important; text-decoration: none; }
+.report-section { break-inside: auto; }
+.report-section > h2 { break-after: avoid; }
+.report table.data { width: 100%; border-collapse: collapse; }
+.report table.data th, .report table.data td { border: 1px solid #ccc !important; }
+.report table.data thead { display: table-header-group; }
+.report tr, .report-checkin { break-inside: avoid; }
+.report-limitations { background: #f5f5f5 !important; border-left-color: #777 !important; }
+.table-wrap { border: 0 !important; overflow: visible !important; }
