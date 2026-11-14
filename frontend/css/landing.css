@@ -17,10 +17,12 @@
 
 /* Hero: minimal — animated mark, one headline, one line, two actions */
 .lp-hero { position: relative; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: 96px 0 72px; isolation: isolate; }
-.lp-hero-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; z-index: -2; }
+/* The photo is enlarged and shifted so Earth's glowing horizon (60% down the image) lands at
+   ~86% of the hero height — beneath the content rather than behind the headline. */
+.lp-hero-art { position: absolute; left: 0; top: -4%; width: 100%; height: 150%; object-fit: cover; object-position: 50% 50%; z-index: -2; }
 .lp-hero-shade { position: absolute; inset: 0; z-index: -1; background:
-  radial-gradient(ellipse 58% 52% at 50% 42%, rgba(6, 11, 22, 0.8) 0%, rgba(6, 11, 22, 0.5) 55%, rgba(6, 11, 22, 0.12) 100%),
-  linear-gradient(180deg, rgba(7, 13, 26, 0.45) 0%, rgba(7, 13, 26, 0) 28%, rgba(7, 13, 26, 0) 72%, #070d1a 100%); }
+  radial-gradient(ellipse 60% 50% at 50% 44%, rgba(6, 11, 22, 0.78) 0%, rgba(6, 11, 22, 0.45) 60%, rgba(6, 11, 22, 0.1) 100%),
+  linear-gradient(180deg, rgba(7, 13, 26, 0.5) 0%, rgba(7, 13, 26, 0) 30%, rgba(7, 13, 26, 0) 88%, #070d1a 100%); }
 .lp-hero-inner { display: flex; justify-content: center; }
 .lp-hero-center { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 960px; }
 .lp-photo-credit { position: absolute; z-index: 2; font-size: 11px; color: rgba(242, 237, 228, 0.6); text-decoration: none; padding: 3px 8px; border-radius: 6px; background: rgba(6, 11, 22, 0.45); letter-spacing: 0.02em; }
@@ -209,7 +211,6 @@
   .lp-strip { gap: 8px 18px; }
   .lp-feature-art figcaption { flex-direction: column; gap: 4px; }
   .lp-hero { min-height: 92vh; padding: 88px 0 56px; }
-  .lp-hero-art { object-position: 50% 100%; }
   .lp-hero-credit { bottom: 8px; }
   .lp-footer-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-4); }
   .lp-cta-row .btn-lg { flex: 1 1 auto; }

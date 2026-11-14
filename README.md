@@ -27,6 +27,7 @@ When you register, MONICA asks for **your name once**. It uses that name for bot
 | Baselines and differences | Calculated by documented methods from identified readings |
 | Demo profiles | Fictional, clearly labelled, and created with **no** health readings |
 | Landing-page photographs | NASA Image and Video Library photos (ISS sunrise, in-flight ultrasound, Curiosity self-portrait, spacewalk, Gale Crater sunset), credited on the page and in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md#5-imagery-landing-page). Used under NASA's media guidelines, with no endorsement implied |
+| Hero logo animation and footer landscape | Original artwork. The animated MONICA mark is inline SVG; the engraved Martian footer landscape is regenerated exactly with `node backend/scripts/generate-footer-art.js`. Both stay still when the visitor prefers reduced motion |
 | Landing-page numbers and chart | Fetched live from `/api/catalog` and `/api/radiation`; hidden if the API has no data |
 
 ## Stack
