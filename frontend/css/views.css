@@ -47,6 +47,14 @@ dl.kv.stacked dt:first-child { margin-top: 0; }
 .learn-title { font-size: var(--fs-base); }
 .learn-panel { background: linear-gradient(160deg, rgba(79, 209, 189, 0.07), transparent 55%), var(--surface); }
 
+.welcome-card { display: flex; align-items: center; gap: var(--s-2) var(--s-3); flex-wrap: wrap; padding: var(--s-3); margin-bottom: var(--s-3); border: 1px solid var(--teal-line); border-radius: var(--r-lg);
+  background: radial-gradient(500px 200px at 100% 0%, rgba(79, 209, 189, 0.12), transparent 60%), var(--surface); }
+.welcome-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--teal-soft); color: var(--teal); flex: none; }
+.welcome-icon svg { width: 24px; height: 24px; }
+.welcome-body { flex: 1 1 320px; min-width: 0; }
+.welcome-body h2 { font-size: var(--fs-md); }
+.welcome-body p { color: var(--text-2); font-size: var(--fs-sm); margin-top: 4px; }
+
 /* ---------- Check-in ---------- */
 .checkin-panel { padding: var(--s-4); }
 .checkin-body { min-height: 320px; }

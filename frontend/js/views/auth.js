@@ -19,8 +19,12 @@ function orbitArt() {
   return svg;
 }
 
-export function renderAuth(root, { onSignedIn, startupError } = {}) {
-  let mode = 'signin';
+function browserTimezone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
+}
+
+export function renderAuth(root, { onSignedIn, startupError, mode: initialMode = 'signin' } = {}) {
+  let mode = initialMode === 'register' ? 'register' : 'signin';
   const errorSlot = h('div', { 'aria-live': 'assertive' });
   const formSlot = h('div');
 
@@ -33,10 +37,12 @@ export function renderAuth(root, { onSignedIn, startupError } = {}) {
     const isRegister = mode === 'register';
     const email = h('input', { class: 'input', id: 'auth-email', type: 'email', name: 'email', autocomplete: 'email', required: true });
     const password = h('input', { class: 'input', id: 'auth-password', type: 'password', name: 'password', autocomplete: isRegister ? 'new-password' : 'current-password', required: true, minlength: isRegister ? 10 : undefined });
-    const name = isRegister ? h('input', { class: 'input', id: 'auth-name', name: 'displayName', autocomplete: 'name', required: true, maxlength: 80 }) : null;
+    const name = isRegister ? h('input', { class: 'input', id: 'auth-name', name: 'displayName', autocomplete: 'name', required: true, maxlength: 80, 'aria-describedby': 'auth-name-hint' }) : null;
     const submit = h('button', { class: 'btn btn-primary btn-lg btn-block', type: 'submit' }, isRegister ? 'Create account' : 'Sign in');
+    const tz = browserTimezone();
     const form = h('form', { class: 'stack', novalidate: true },
-      isRegister ? h('div', { class: 'field' }, h('label', { for: 'auth-name' }, 'Display name'), name) : null,
+      isRegister ? h('div', { class: 'field' }, h('label', { for: 'auth-name' }, 'Your name'), name,
+        h('span', { class: 'hint', id: 'auth-name-hint' }, `You only enter this once — it names your account and your own health profile. Time zone set to ${tz}; you can change it and add mission details later.`)) : null,
       h('div', { class: 'field' }, h('label', { for: 'auth-email' }, 'Email'), email),
       h('div', { class: 'field' }, h('label', { for: 'auth-password' }, 'Password'), password,
         isRegister ? h('span', { class: 'hint' }, 'At least 10 characters. Stored only as a salted scrypt hash.') : null),
@@ -45,7 +51,7 @@ export function renderAuth(root, { onSignedIn, startupError } = {}) {
       e.preventDefault();
       const restore = busy(submit, isRegister ? 'Creating account…' : 'Signing in…');
       try {
-        const body = isRegister ? { displayName: name.value, email: email.value, password: password.value } : { email: email.value, password: password.value };
+        const body = isRegister ? { displayName: name.value, email: email.value, password: password.value, timezone: tz } : { email: email.value, password: password.value };
         const res = await post(isRegister ? '/auth/register' : '/auth/login', body);
         await onSignedIn(res.user);
       } catch (err) {
@@ -57,17 +63,30 @@ export function renderAuth(root, { onSignedIn, startupError } = {}) {
   }
 
   const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Account' });
-  const tabSignIn = h('button', { type: 'button', role: 'tab', 'aria-selected': 'true' }, 'Sign in');
-  const tabRegister = h('button', { type: 'button', role: 'tab', 'aria-selected': 'false' }, 'Create account');
+  const tabSignIn = h('button', { type: 'button', role: 'tab', 'aria-selected': String(mode === 'signin') }, 'Sign in');
+  const tabRegister = h('button', { type: 'button', role: 'tab', 'aria-selected': String(mode === 'register') }, 'Create account');
   for (const [btn, m] of [[tabSignIn, 'signin'], [tabRegister, 'register']]) {
     btn.addEventListener('click', () => {
       mode = m;
       tabSignIn.setAttribute('aria-selected', String(m === 'signin'));
       tabRegister.setAttribute('aria-selected', String(m === 'register'));
+      // Keep the address in step with the tab without re-rendering the page.
+      history.replaceState(null, '', m === 'register' ? '#/register' : '#/signin');
+      drawHeading();
       renderForm();
     });
   }
   tabs.append(tabSignIn, tabRegister);
+
+  const titleEl = h('h2', { class: 'auth-title' });
+  const introEl = h('p', { class: 'muted auth-intro' });
+  function drawHeading() {
+    titleEl.textContent = mode === 'register' ? 'Create your account' : 'Welcome back';
+    introEl.textContent = mode === 'register'
+      ? 'Your account comes with your own health profile — there is no second setup step.'
+      : 'Sign in to your account, or explore with fictional demo profiles.';
+  }
+  drawHeading();
 
   const demoBtn = h('button', { class: 'btn btn-lg btn-block', type: 'button' }, icon('user'), 'Explore with fictional demo profiles');
   demoBtn.addEventListener('click', async () => {
@@ -93,8 +112,9 @@ export function renderAuth(root, { onSignedIn, startupError } = {}) {
       h('p', { class: 'auth-disclaimer' }, 'NASA Space Apps Challenge 2026 research prototype. Not a validated diagnostic or treatment system, and not affiliated with or endorsed by NASA.')),
     h('section', { class: 'auth-panel' },
       h('div', { class: 'auth-card' },
-        h('h2', { class: 'auth-title' }, 'Welcome'),
-        h('p', { class: 'muted auth-intro' }, 'Sign in to your account, or explore with fictional demo profiles.'),
+        h('a', { class: 'auth-back', href: '#/' }, icon('chevronLeft', { size: 16 }), 'Back to MONICA home'),
+        titleEl,
+        introEl,
         startupError ? callout({ tone: 'attention', title: 'Connection problem', body: startupError.message }) : null,
         errorSlot,
         tabs,

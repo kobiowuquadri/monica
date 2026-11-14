@@ -10,13 +10,16 @@ function timezones() {
   try { return Intl.supportedValuesOf('timeZone'); } catch { return ['UTC']; }
 }
 
-function profileForm({ profile, onSubmit, submitLabel }) {
+function profileForm({ profile, onSubmit, submitLabel, defaultName = '' }) {
   const f = (id, label, value, opts = {}) => {
     const input = h('input', { class: 'input', id, value: value || '', maxlength: opts.max || 120, required: opts.required });
     return { input, el: h('div', { class: 'field' }, h('label', { for: id }, label), input, opts.hint ? h('span', { class: 'hint' }, opts.hint) : null) };
   };
   const pre = profile ? 'pf' : 'np';
-  const name = f(`${pre}-name`, 'Display name', profile?.displayName, { required: true, max: 80 });
+  const name = f(`${pre}-name`, 'Profile name', profile?.displayName ?? defaultName, {
+    required: true, max: 80,
+    hint: profile ? 'Shown on check-ins and review summaries.' : 'The person whose check-ins this profile will hold.',
+  });
   const role = f(`${pre}-role`, 'Role', profile?.roleTitle, { max: 80 });
   const mission = f(`${pre}-mission`, 'Mission', profile?.missionName, { max: 120 });
   const phase = f(`${pre}-phase`, 'Mission phase', profile?.missionPhase, { max: 80, hint: 'e.g. "Interplanetary cruise", "Surface operations"' });
@@ -49,11 +52,17 @@ export async function render(root, ctx) {
   const profile = currentProfile();
   const user = state.user;
 
+  // Accounts get their own profile at registration. Extra profiles exist only for recording
+  // check-ins on behalf of other people (e.g. a crew medical officer).
+  const hasOwnProfile = state.profiles.length > 0;
   const newProfile = h('details', { class: 'disclosure', open: !profile },
-    h('summary', null, icon('plus', { size: 16 }), 'Create a new profile'),
+    h('summary', null, icon('plus', { size: 16 }), hasOwnProfile ? 'Add a profile for someone else' : 'Create your health profile'),
     h('div', { class: 'disclosure-body' },
+      h('p', { class: 'small' }, hasOwnProfile
+        ? 'Only needed if you record check-ins for another person — for example, a crew medical officer keeping profiles for several crew members. Each profile has its own readings, baselines and history.'
+        : 'Your profile holds your check-ins, baselines and follow-up history.'),
       user?.isDemo ? h('p', { class: 'small' }, 'Profiles created in a demo session are marked fictional and deleted with the demo account.') : null,
-      profileForm({ profile: null, submitLabel: 'Create profile', onSubmit: async (body) => {
+      profileForm({ profile: null, defaultName: hasOwnProfile ? '' : (user?.displayName || ''), submitLabel: hasOwnProfile ? 'Add profile' : 'Create profile', onSubmit: async (body) => {
         const { profile: created } = await post('/profiles', body);
         await ctx.reloadProfiles();
         selectProfile(created.id);
@@ -61,7 +70,7 @@ export async function render(root, ctx) {
       } })));
 
   const account = panel({ title: 'Account', iconName: 'user', id: 'acct', children: h('dl', { class: 'kv' },
-    h('dt', null, 'Signed in as'), h('dd', null, user?.isDemo ? 'Demo visitor (no email)' : `${user?.displayName} · ${user?.email}`),
+    h('dt', null, 'Account'), h('dd', null, user?.isDemo ? 'Demo visitor (no email)' : `${user?.displayName} · ${user?.email}`),
     user?.isDemo ? [h('dt', null, 'Retention'), h('dd', null, `This demo account, its profiles and every entry are deleted automatically after ${fmtDateTime(user.demoExpiresAt, 'UTC')}. Other visitors cannot see them.`)] : null,
     h('dt', null, 'Session'), h('dd', null, 'Held in a secure, HttpOnly cookie — never readable by page scripts or stored in local storage.')) });
 
@@ -83,7 +92,7 @@ export async function render(root, ctx) {
         } }) }),
       panel({ title: 'Personal baselines', iconName: 'trends', id: 'bl',
         sub: 'A baseline is never inferred silently. Without one, MONICA shows that comparison is unavailable.', children: baselineSlot }),
-      panel({ title: 'Other profiles', iconName: 'layers', id: 'op', children: newProfile }),
+      panel({ title: 'Profiles for other people', iconName: 'layers', id: 'op', sub: `${state.profiles.length} profile${state.profiles.length === 1 ? '' : 's'} on this account. Switch between them with the profile selector at the top.`, children: newProfile }),
       account));
 
   try {

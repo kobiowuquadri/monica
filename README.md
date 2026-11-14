@@ -12,6 +12,10 @@ MONICA is a mission health console for astronauts on long-duration missions, inc
 
 Built for the **2026 NASA Space Apps Challenge**. This is a research prototype, not a validated diagnostic or treatment system, and it is not affiliated with or endorsed by NASA.
 
+Signed-out visitors land on a **public landing page** (`#/`) that describes the product, shows live counts of the imported NASA data, and renders the real Curiosity RAD chart. Sign-in and registration live at `#/signin` and `#/register`.
+
+When you register, MONICA asks for **your name once**. It uses that name for both your account and your own health profile, so there is no second "create a profile" step; mission details are optional and can be added later. Extra profiles are only for recording check-ins on behalf of other people, such as a crew medical officer's crew.
+
 ## What is real, and what is not
 
 | Shown in MONICA | Origin |
@@ -22,6 +26,8 @@ Built for the **2026 NASA Space Apps Challenge**. This is a research prototype, 
 | Vital signs, symptoms, wellbeing | Entered by the user; nothing is generated or simulated |
 | Baselines and differences | Calculated by documented methods from identified readings |
 | Demo profiles | Fictional, clearly labelled, and created with **no** health readings |
+| Landing-page photographs | NASA Image and Video Library photos (ISS sunrise, in-flight ultrasound, Curiosity self-portrait, spacewalk, Gale Crater sunset), credited on the page and in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md#5-imagery-landing-page). Used under NASA's media guidelines, with no endorsement implied |
+| Landing-page numbers and chart | Fetched live from `/api/catalog` and `/api/radiation`; hidden if the API has no data |
 
 ## Stack
 
@@ -63,6 +69,7 @@ Without `DATABASE_URL` the API still starts, but it reports that database functi
 
 Public:
 - `GET /api/health`, `GET /api/ready`
+- `GET /api/catalog` (counts of imported NASA data, for the landing page)
 - `GET /api/radiation`
 - `GET /api/space-weather[?mode=recent]`
 - `GET /api/sources`, `GET /api/reference`

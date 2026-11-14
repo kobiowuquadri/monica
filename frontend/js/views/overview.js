@@ -96,7 +96,9 @@ export async function render(root, ctx) {
       h('div', { class: 'row' },
         h('h1', null, p.displayName),
         p.isFictional ? badge('Fictional demo identity', 'outline', 'user') : null),
-      h('p', { class: 'muted' }, [p.roleTitle, p.missionName, p.missionPhase].filter(Boolean).join(' · ') || 'No mission context recorded — add it in Profile & settings.'),
+      [p.roleTitle, p.missionName, p.missionPhase].some(Boolean)
+        ? h('p', { class: 'muted' }, [p.roleTitle, p.missionName, p.missionPhase].filter(Boolean).join(' · '))
+        : h('p', { class: 'muted' }, 'No mission details yet. ', h('a', { href: '#/settings' }, 'Add role and mission')),
       h('div', { class: 'overview-meta' },
         h('span', null, icon('calendar'), fmtLongDate(new Date(), tz), ` · ${tzName(tz)}`),
         h('span', null, icon('clock'), lastUpdate ? `Last check-in ${fmtRelative(lastUpdate)} (${fmtDateTime(lastUpdate, tz)})` : 'No check-ins yet'),
@@ -224,8 +226,20 @@ export async function render(root, ctx) {
     actions: linkButton('More', `#/sources?card=${card.id}`, { size: 'sm' }),
   });
 
+  // First visit after registration: confirm the profile exists so nobody re-enters their name.
+  const isNew = !p.isFictional && data.checkIns.total === 0 && ![p.roleTitle, p.missionName, p.missionPhase].some(Boolean);
+  const welcome = isNew ? h('div', { class: 'welcome-card' },
+    h('div', { class: 'welcome-icon' }, icon('checkCircle')),
+    h('div', { class: 'welcome-body' },
+      h('h2', null, `Welcome, ${p.displayName}. Your health profile is ready.`),
+      h('p', null, `It was created from your account name, with times shown in ${p.timezone}. Mission details are optional — add them any time.`)),
+    h('div', { class: 'row' },
+      linkButton('Start first check-in', '#/check-in', { variant: 'primary', iconName: 'plus' }),
+      linkButton('Add mission details', '#/settings', { iconName: 'settings' }))) : null;
+
   mount(root,
     header,
+    welcome,
     h('div', { class: 'grid grid-12' },
       h('div', { class: 'span-12' }, vitalsPanel),
       h('div', { class: 'span-4' }, obsPanel),

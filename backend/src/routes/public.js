@@ -4,7 +4,7 @@ import { requireDatabase } from '../middleware/auth.js';
 import { getPool } from '../db/pool.js';
 import { parseQueryDate } from '../validation/validate.js';
 import { HttpError } from '../middleware/errors.js';
-import { listSources } from '../repositories/nasa.js';
+import { listSources, radiationCoverage, spaceWeatherCoverage } from '../repositories/nasa.js';
 import { getRadiation, getStoredSpaceWeather, getRecentSpaceWeather, parseDetectors } from '../services/environmentService.js';
 import { LEARNING_CARDS } from '../content/learning.js';
 import { SOURCES } from '../content/sources.js';
@@ -33,6 +33,33 @@ publicRouter.get('/ready', async (_req, res) => {
     return res.status(503).json({ status: 'not_ready', database: 'unreachable', message: err.code === '42P01' ? 'Migrations have not been run.' : 'Database could not be reached.' });
   }
 });
+
+// Lightweight summary of imported NASA data for the public landing page (real counts only).
+let catalogCache = { at: 0, payload: null };
+publicRouter.get('/catalog', requireDatabase, wrap(async (_req, res) => {
+  if (!catalogCache.payload || Date.now() - catalogCache.at > 5 * 60 * 1000) {
+    const [rad, sw] = await Promise.all([radiationCoverage(), spaceWeatherCoverage()]);
+    catalogCache = {
+      at: Date.now(),
+      payload: {
+        radiation: rad.length ? {
+          datasetId: rad[0].dataset_id,
+          detectors: rad.map((r) => r.detector),
+          samples: rad.reduce((n, r) => n + r.total, 0),
+          firstObservation: rad.reduce((m, r) => (m && m < r.first_obs ? m : r.first_obs), null),
+          lastObservation: rad.reduce((m, r) => (m && m > r.last_obs ? m : r.last_obs), null),
+          firstSol: Math.min(...rad.map((r) => r.first_sol)),
+          lastSol: Math.max(...rad.map((r) => r.last_sol)),
+        } : null,
+        spaceWeather: sw?.total ? { events: sw.total, firstEvent: sw.first_event, lastEvent: sw.last_event } : null,
+        sources: SOURCES.length,
+        label: 'Historical NASA data imported into this deployment',
+      },
+    };
+  }
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(catalogCache.payload);
+}));
 
 publicRouter.get('/radiation', requireDatabase, wrap(async (req, res) => {
   const from = parseQueryDate(req.query.from, 'from');

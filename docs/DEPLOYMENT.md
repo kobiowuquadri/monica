@@ -128,8 +128,11 @@ If `DATABASE_URL` is missing, `/api/health` reports `"database":"not_configured"
 ## 7. Test the deployed application
 
 1. `GET /api/health` and `/api/ready` on Render (above).
-2. Open `https://<project>.vercel.app`. The browser console should be free of errors; the network tab should show `/api/me` → 401 before sign-in.
-3. Click **Explore with fictional demo profiles**.
+2. Open `https://<project>.vercel.app`.
+   - The landing page should appear, with a strip of real counts ("2,804 Curiosity RAD observations…") and, further down, the RAD chart.
+   - The browser console should be free of errors; the network tab should show `/api/me` → 401 before sign-in.
+   - **Create an account** should ask for your name once and land on "Welcome, <name>. Your health profile is ready."
+3. Click **Explore the demo**.
    - Expect two "Fictional demo identity" profiles.
    - Every vital shows "No reading recorded".
 4. **Radiation & space weather.**

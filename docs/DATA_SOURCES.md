@@ -112,3 +112,21 @@ Lines also break where consecutive observations are more than 2 hours apart. Thi
 | `api-nasa-donki-docs` | api.nasa.gov DONKI documentation | NASA | https://api.nasa.gov/ | 2026-11-14 | Endpoints, parameters and the DONKI description |
 
 Every learning-card statement cites one of these sources with a section locator. Statements about MONICA's own behaviour are labelled "In MONICA" and are not presented as NASA statements. MONICA uses no NASA logos and claims no endorsement.
+
+---
+
+## 5. Imagery (landing page)
+
+The landing page uses NASA photographs from the NASA Image and Video Library (https://images.nasa.gov/), retrieved on 2026-11-14. They were resized and cropped for the web (`frontend/assets/images/`), with EXIF metadata removed; colours and content are unaltered.
+
+They are used under NASA's guidelines (https://www.nasa.gov/nasa-brand-center/images-and-media/): factual use that does not imply endorsement, with NASA acknowledged as the source. Each photo carries a credit link on the page. Crew members who appear are not associated with MONICA. Images showing NASA insignia were deliberately not chosen.
+
+| File | NASA ID | Credit | Content |
+|---|---|---|---|
+| `hero-earth-limb-1600.jpg`, `hero-earth-limb-3200.jpg` | [iss028e007274](https://images.nasa.gov/details/iss028e007274) | NASA | Sunrise over Earth's limb from the ISS, Expedition 28, 11 June 2011 |
+| `crew-ultrasound-1200.jpg` | [iss036e006639](https://images.nasa.gov/details/iss036e006639) | NASA | Ocular Health ultrasound scan aboard the ISS, 2013 |
+| `curiosity-selfie-1200.jpg` | [PIA20602](https://images.nasa.gov/details/PIA20602) | NASA/JPL-Caltech/MSSS | Curiosity self-portrait at the "Okoruso" drill site, lower Mount Sharp, 2016 |
+| `eva-earth-1200.jpg` | [iss061e003491](https://images.nasa.gov/details/iss061e003491) | NASA | Spacewalk (EVA 56 clean-up) on the ISS, 6 Oct 2019 |
+| `mars-sunset-1344.jpg` | [PIA19400](https://images.nasa.gov/details/PIA19400) | NASA/JPL-Caltech/MSSS/Texas A&M Univ. | Sunset in Gale Crater, Curiosity sol 956 (15 Apr 2015) |
+
+Photos are illustrative context only. No measurement shown in MONICA comes from them.

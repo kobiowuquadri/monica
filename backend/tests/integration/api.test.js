@@ -73,6 +73,10 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
     const r = await fetch(`${base}/ready`).then((x) => x.json());
     assert.equal(r.status, 'ready');
     assert.equal(r.migrationsApplied, 2);
+    // The public catalog reports real counts only: an empty schema has no NASA data.
+    const cat = await fetch(`${base}/catalog`).then((x) => x.json());
+    assert.equal(cat.radiation, null);
+    assert.equal(cat.spaceWeather, null);
   });
 
   test('personal endpoints require authentication and the CSRF header', async () => {
@@ -86,9 +90,16 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
 
   test('registration, login and password handling', async () => {
     const email = `a-${Date.now()}@example.test`;
-    const reg = await A('POST', '/auth/register', { email, password: 'correct horse battery', displayName: 'Tester A' });
+    const reg = await A('POST', '/auth/register', { email, password: 'correct horse battery', displayName: 'Tester A', timezone: 'America/Chicago' });
     assert.equal(reg.status, 201);
     assert.match(reg.headers.get('set-cookie'), /HttpOnly/i);
+    // The name is entered once: registration creates the account holder's own profile from it.
+    const own = (await A('GET', '/profiles')).data.profiles;
+    assert.equal(own.length, 1);
+    assert.equal(own[0].displayName, 'Tester A');
+    assert.equal(own[0].timezone, 'America/Chicago');
+    assert.equal(own[0].isFictional, false);
+    assert.equal((await client()('POST', '/auth/register', { email: `tz-${Date.now()}@example.test`, password: 'another long pass', displayName: 'X', timezone: 'Mars/Gale' })).status, 400);
     assert.equal((await client()('POST', '/auth/register', { email, password: 'another long pass', displayName: 'Dup' })).status, 409);
     assert.equal((await client()('POST', '/auth/login', { email, password: 'wrong password!!' })).status, 401);
     assert.equal((await client()('POST', '/auth/login', { email: email.toUpperCase(), password: 'correct horse battery' })).status, 200);

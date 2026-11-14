@@ -8,19 +8,25 @@ import { createSession } from '../repositories/sessions.js';
 import { insertProfile } from '../repositories/profiles.js';
 import { recordAudit } from '../repositories/audit.js';
 import { hashPassword, verifyPassword, dummyVerify } from './passwords.js';
+import { isValidTimezone } from '../validation/profile.js';
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 
 function validateCredentials(body, { register }) {
   const v = new Validator();
   const b = v.object('body', body);
-  rejectUnknownKeys(v, '', b, register ? ['email', 'password', 'displayName'] : ['email', 'password']);
+  rejectUnknownKeys(v, '', b, register ? ['email', 'password', 'displayName', 'timezone'] : ['email', 'password']);
   const email = v.string('email', b.email, { required: true, max: 254 });
   if (email && !EMAIL_RE.test(email)) v.add('email', 'Enter a valid email address.');
   const password = v.string('password', b.password, { required: true, max: 200, trim: false, min: register ? 10 : 1 });
   const displayName = register ? v.string('displayName', b.displayName, { required: true, min: 1, max: 80 }) : null;
+  let timezone = null;
+  if (register) {
+    timezone = v.string('timezone', b.timezone, { max: 64 });
+    if (timezone && !isValidTimezone(timezone)) v.add('timezone', 'Unknown time zone.');
+  }
   v.throwIfInvalid();
-  return { email: email.toLowerCase(), password, displayName };
+  return { email: email.toLowerCase(), password, displayName, timezone: timezone || 'UTC' };
 }
 
 export function userDto(u) {
@@ -33,16 +39,22 @@ export function userDto(u) {
   };
 }
 
+/**
+ * Creates the account AND the account holder's own health profile from the same name, so the
+ * user never has to enter their name twice. Mission details can be added later.
+ */
 export async function register(body) {
-  const { email, password, displayName } = validateCredentials(body, { register: true });
+  const { email, password, displayName, timezone } = validateCredentials(body, { register: true });
   const existing = await findUserByEmail(email);
   if (existing) throw new HttpError(409, 'email_in_use', 'An account with this email already exists. Sign in instead.');
   const passwordHash = await hashPassword(password);
   try {
     return await withTransaction(async (client) => {
       const user = await insertUser(client, { email, passwordHash, displayName });
+      const profile = await insertProfile(client, user.id, { displayName, timezone, isFictional: false });
       const session = await createSession(user.id, client);
       await recordAudit(client, { userId: user.id, entityType: 'user', entityId: user.id, action: 'user.registered' });
+      await recordAudit(client, { userId: user.id, profileId: profile.id, entityType: 'profile', entityId: profile.id, action: 'profile.created', metadata: { createdAtRegistration: true } });
       return { user: userDto(user), session };
     });
   } catch (err) {

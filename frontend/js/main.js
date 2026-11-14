@@ -14,6 +14,7 @@ import * as reports from './views/reports.js';
 import * as sources from './views/sources.js';
 import * as settings from './views/settings.js';
 import { renderAuth } from './views/auth.js';
+import { renderLanding } from './views/landing.js';
 
 const NAV = [
   { group: 'Health', items: [
@@ -38,6 +39,7 @@ for (const item of ALL) defineRoute(item.path, item.view);
 
 const els = {
   boot: document.getElementById('boot'),
+  landing: document.getElementById('landing'),
   auth: document.getElementById('auth'),
   app: document.getElementById('app'),
   nav: document.getElementById('nav'),
@@ -165,20 +167,54 @@ export async function reloadProfiles() {
 async function signOut() {
   try { await post('/auth/logout'); } catch { /* clear local state regardless */ }
   setUser(null);
-  showAuth();
+  goSignedOut('#/');
   toast('Signed out.');
 }
 
-// ---------------- Rendering ----------------
-function showAuth() {
+// ---------------- Signed-out views: landing page, sign-in, registration ----------------
+let signedOutView = null;
+let landingCleanup = null;
+
+function signedOutModeFor(hash) {
+  if (!hash || hash === '#' || hash === '#/') return 'landing';
+  if (hash.startsWith('#/register')) return 'register';
+  return 'signin'; // #/signin, or a deep link into the app while signed out
+}
+
+function showSignedOut({ startupError } = {}) {
   els.boot.hidden = true;
   els.app.hidden = true;
-  els.auth.hidden = false;
-  renderAuth(els.auth, { onSignedIn: enterApp });
+  const mode = signedOutModeFor(window.location.hash);
+  if (mode === signedOutView && !startupError) return;
+  signedOutView = mode;
+  landingCleanup?.();
+  landingCleanup = null;
+  if (mode === 'landing') {
+    els.auth.hidden = true;
+    els.landing.hidden = false;
+    landingCleanup = renderLanding(els.landing, { onSignedIn: enterApp });
+    document.title = 'MONICA — Astronaut Health Monitoring';
+  } else {
+    els.landing.hidden = true;
+    els.auth.hidden = false;
+    renderAuth(els.auth, { onSignedIn: enterApp, mode, startupError });
+    document.title = `${mode === 'register' ? 'Create account' : 'Sign in'} · MONICA`;
+  }
+  window.scrollTo(0, 0);
+}
+
+function goSignedOut(hash) {
+  signedOutView = null;
+  history.replaceState(null, '', hash);
+  showSignedOut();
 }
 
 async function enterApp(user) {
   setUser(user);
+  signedOutView = null;
+  landingCleanup?.();
+  landingCleanup = null;
+  els.landing.hidden = true;
   try {
     await reloadProfiles();
     state.reference = await get('/reference');
@@ -194,12 +230,15 @@ async function enterApp(user) {
   buildBrand();
   buildNav();
   buildFoot();
-  if (!window.location.hash || window.location.hash === '#') window.location.hash = '#/overview';
+  if (['', '#', '#/'].includes(window.location.hash) || /^#\/(signin|register)/.test(window.location.hash)) {
+    history.replaceState(null, '', '#/overview');
+  }
   if (routerStarted) rerender(); else { routerStarted = true; startRouter(handleRoute); }
   refreshCounts();
 }
 
 async function handleRoute({ path, params, view, isCurrent }) {
+  if (!state.user) return null; // signed-out navigation is handled by showSignedOut()
   currentPath = path;
   updateNavCurrent();
   buildTopbar();
@@ -212,7 +251,7 @@ async function handleRoute({ path, params, view, isCurrent }) {
     return cleanup;
   } catch (err) {
     console.error(err);
-    if (err instanceof ApiError && err.status === 401) { setUser(null); showAuth(); return null; }
+    if (err instanceof ApiError && err.status === 401) { setUser(null); goSignedOut('#/signin'); return null; }
     mount(els.main, h('div', { class: 'empty' }, h('h3', null, 'This page could not be displayed'), h('p', null, err.message || 'Unexpected error.')));
     return null;
   }
@@ -231,33 +270,32 @@ subscribe((key) => {
   if (key === 'counts') updateNavCounts();
 });
 
-// Route-level focus management: move focus to the main region after navigation.
-window.addEventListener('hashchange', () => { setTimeout(() => els.main.focus({ preventScroll: false }), 0); window.scrollTo(0, 0); });
+// Signed out: the hash selects landing / sign-in / registration. Signed in: move focus to the
+// main region after navigation (the router renders the view).
+window.addEventListener('hashchange', () => {
+  if (!state.user) { showSignedOut(); return; }
+  setTimeout(() => els.main.focus({ preventScroll: false }), 0);
+  window.scrollTo(0, 0);
+});
+
+// The skip link targets whichever main region is visible.
+document.getElementById('skip-link')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  const target = !els.app.hidden ? els.main : !els.landing.hidden ? document.getElementById('landing-main') : els.auth.querySelector('input, button');
+  target?.focus();
+});
 
 async function boot() {
-  // Free hosting tiers can take up to a minute to wake an idle API; say so instead of failing early.
-  const slow = setTimeout(() => {
-    const msg = els.boot.querySelector('.boot-inner span:last-child');
-    if (msg) msg.textContent = 'Waking the MONICA server — on free hosting this can take up to a minute…';
-  }, 6000);
-  try {
-    await get('/health', { timeoutMs: 75_000 });
-  } catch {
-    // Health failure is reported via the connection state; continue to session check.
-  } finally {
-    clearTimeout(slow);
-  }
-  try {
-    const { user } = await get('/me');
-    await enterApp(user);
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 401)) showAuth();
-    else {
-      els.boot.hidden = true;
-      els.auth.hidden = false;
-      renderAuth(els.auth, { onSignedIn: enterApp, startupError: err });
-    }
-  }
+  // Ask for the session; if the API is slow to answer (free hosting can take up to a minute to
+  // wake), show the public landing page meanwhile instead of a blank loading screen.
+  const me = get('/me', { timeoutMs: 75_000 }).then((r) => ({ user: r.user }), (err) => ({ err }));
+  const early = await Promise.race([me, new Promise((resolve) => setTimeout(() => resolve(null), 1500))]);
+  if (!early) showSignedOut();
+  const res = early || await me;
+  if (res.user) { await enterApp(res.user); return; }
+  const unexpected = res.err && !(res.err instanceof ApiError && res.err.status === 401);
+  if (unexpected && signedOutModeFor(window.location.hash) !== 'landing') showSignedOut({ startupError: res.err });
+  else showSignedOut();
 }
 
 boot();
