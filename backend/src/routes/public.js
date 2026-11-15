@@ -9,7 +9,8 @@ import { getRadiation, getStoredSpaceWeather, getRecentSpaceWeather, parseDetect
 import { LEARNING_CARDS } from '../content/learning.js';
 import { SOURCES } from '../content/sources.js';
 import { RULE_CATALOGUE, RULES_VERSION } from '../services/rulesEngine.js';
-import { VITAL_METRICS, WELLBEING_METRICS, SYMPTOMS, ACTIVITY_CONTEXTS } from '../content/metrics.js';
+import { VITAL_METRICS, EXPOSURE_INPUT, LYMPHOCYTE_INPUT, WELLBEING_METRICS, SYMPTOMS, ACTIVITY_CONTEXTS } from '../content/metrics.js';
+import { describeModel } from '../services/healthBrain.js';
 import { BASELINE_METHODS } from '../services/baselineService.js';
 import { DONKI_TYPES } from '../nasa/donki.js';
 
@@ -102,6 +103,9 @@ publicRouter.get('/reference', (_req, res) => {
     symptoms: SYMPTOMS,
     activityContexts: ACTIVITY_CONTEXTS,
     baselineMethods: BASELINE_METHODS,
+    exposureInput: EXPOSURE_INPUT,
+    lymphocyteInput: LYMPHOCYTE_INPUT,
+    healthBrain: describeModel(),
     inputRangeNote: 'Input ranges catch typing errors only. They are not clinical reference ranges and are never used to label a reading as normal or abnormal.',
   });
 });

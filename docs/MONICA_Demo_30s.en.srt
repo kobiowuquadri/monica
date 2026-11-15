@@ -1,0 +1,31 @@
+1
+00:00:00,300 --> 00:00:01,850
+We are Team MONICA.
+
+2
+00:00:01,950 --> 00:00:06,050
+Our challenge: keeping astronauts healthy on the long journey to Mars.
+
+3
+00:00:06,250 --> 00:00:10,050
+Meet MONICA, a mission health console for long-duration crews.
+
+4
+00:00:10,250 --> 00:00:12,500
+Crew members log quick health check-ins.
+
+5
+00:00:12,650 --> 00:00:15,250
+Each reading is compared with their own baseline.
+
+6
+00:00:15,400 --> 00:00:18,150
+Transparent rules flag what needs attention.
+
+7
+00:00:18,300 --> 00:00:21,850
+And real NASA rover data adds radiation context.
+
+8
+00:00:22,200 --> 00:00:27,400
+Our vision: crews who can manage their own health, even when Earth is twenty minutes away.

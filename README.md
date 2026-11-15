@@ -27,7 +27,8 @@ When you register, MONICA asks for **your name once**. It uses that name for bot
 | Learning content | Cited NASA references (HRP Space Radiation Element, JSC SRAG, NASA-STD-3001, the RAD SIS) |
 | Vital signs, symptoms, wellbeing | Entered by the user; nothing is generated or simulated |
 | Baselines and differences | Calculated by documented methods from identified readings |
-| Demo profiles | Fictional, clearly labelled, and created with **no** health readings |
+| Demo profiles | Fictional, clearly labelled, and pre-loaded with a scripted scenario: dose rates replay archived NASA MSL RAD measurements (Sept 2017) shifted in time; vital signs, symptoms and lymphocyte counts are invented |
+| Health Brain (RHI) | 0–100 prototype triage index — Exposure 35%, Symptoms 30%, Biomarkers 20%, Wellbeing 15% — with hard triggers that override the score. Prototype weights, not clinically validated |
 | Landing-page photographs | NASA Image and Video Library photos (ISS sunrise, in-flight ultrasound, Curiosity self-portrait, spacewalk, Gale Crater sunset), credited on the page and in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md#5-imagery-landing-page). Used under NASA's media guidelines, with no endorsement implied |
 | Hero logo animation and footer landscape | Original artwork. The animated MONICA mark is inline SVG; the engraved Martian footer landscape is regenerated exactly with `node backend/scripts/generate-footer-art.js`. Both stay still when the visitor prefers reduced motion |
 | Landing-page numbers and chart | Fetched live from `/api/catalog` and `/api/radiation`; hidden if the API has no data |

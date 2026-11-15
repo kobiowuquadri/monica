@@ -7,6 +7,7 @@ import { state, subscribe, setUser, setProfiles, selectProfile, currentProfile, 
 import { defineRoute, startRouter, render as rerender, navigate } from './router.js';
 import * as overview from './views/overview.js';
 import * as checkin from './views/checkin.js';
+import * as healthbrain from './views/healthbrain.js';
 import * as trends from './views/trends.js';
 import * as environment from './views/environment.js';
 import * as actions from './views/actions.js';
@@ -19,6 +20,7 @@ import { renderLanding } from './views/landing.js';
 const NAV = [
   { group: 'Health', items: [
     { path: '/overview', label: 'Overview', icon: 'overview', view: overview },
+    { path: '/health-brain', label: 'Health Brain', icon: 'gauge', view: healthbrain },
     { path: '/check-in', label: 'Health check-in', icon: 'checkin', view: checkin },
     { path: '/trends', label: 'Health trends', icon: 'trends', view: trends },
     { path: '/actions', label: 'Actions & follow-up', icon: 'actions', view: actions, count: true },

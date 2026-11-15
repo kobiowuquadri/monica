@@ -97,8 +97,18 @@ export const SYMPTOMS = {
   sleep_difficulty: 'Difficulty sleeping',
   low_mood_anxiety: 'Low mood or anxiety',
   difficulty_concentrating: 'Difficulty concentrating',
+  confusion: 'Confusion or disorientation',
   injury: 'Injury',
   other: 'Other (describe in notes)',
+};
+
+/** Optional Health Brain inputs. Input ranges are typo checks only, not reference ranges. */
+export const EXPOSURE_INPUT = {
+  label: 'Radiation dose rate', unit: 'microGray / Hour', inputRange: { min: 0, max: 100000 }, maxDecimals: 3,
+  sourceTypes: ['manual', 'device_reported'],
+};
+export const LYMPHOCYTE_INPUT = {
+  label: 'Lymphocyte count', unit: '×10⁹/L', inputRange: { min: 0, max: 20 }, maxDecimals: 2,
 };
 
 export const SYMPTOM_CODES = Object.keys(SYMPTOMS);

@@ -72,7 +72,7 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
     assert.equal(h.database, 'configured');
     const r = await fetch(`${base}/ready`).then((x) => x.json());
     assert.equal(r.status, 'ready');
-    assert.equal(r.migrationsApplied, 2);
+    assert.equal(r.migrationsApplied, 3);
     // The public catalog reports real counts only: an empty schema has no NASA data.
     const cat = await fetch(`${base}/catalog`).then((x) => x.json());
     assert.equal(cat.radiation, null);
@@ -300,7 +300,7 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
     for (const m of meta) assert.deepEqual(Object.keys(m.metadata).sort(), ['observations', 'rulesVersion', 'symptoms', 'vitals']);
   });
 
-  test('demo sessions are isolated, fictional and start with no health records', async () => {
+  test('demo sessions are isolated, fictional and start with a labelled scripted scenario', async () => {
     const d1 = client();
     const d2 = client();
     assert.equal((await d1('POST', '/auth/demo')).status, 201);
@@ -312,9 +312,15 @@ describe('MONICA API (Neon, isolated schema)', { skip: !HAS_DB && 'DATABASE_URL 
     assert.ok(!p2.some((p) => p1.find((q) => q.id === p.id)));
     assert.equal((await d2('GET', `/profiles/${p1[0].id}/overview`)).status, 404);
     const ov = await d1('GET', `/profiles/${p1[0].id}/overview`);
-    assert.equal(ov.data.checkIns.total, 0);
-    assert.ok(ov.data.vitals.every((v) => v.reading === null));
-    assert.equal(ov.data.observations.open.length, 0);
+    assert.equal(ov.data.checkIns.total, 12);
+    assert.match(ov.data.profile.notes, /Fictional demo identity with a scripted history/);
+    const hb = ov.data.healthBrain;
+    assert.equal(hb.history.length, 12);
+    assert.ok(hb.current.score >= 0 && hb.current.score <= 100);
+    assert.ok(['green', 'yellow', 'orange', 'red'].includes(hb.current.band));
+    const page = await d1('GET', `/profiles/${p1[1].id}/health-brain`);
+    assert.equal(page.status, 200);
+    assert.ok(page.data.history.every((a) => a.components[0].assessed === false));
   });
 
   test('NASA RAD import is deduplicated, keeps provenance, units and separate channels', async () => {

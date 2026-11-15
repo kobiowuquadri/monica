@@ -33,10 +33,15 @@ authRouter.post('/auth/login', requireDatabase, authLimiter, async (req, res, ne
 
 authRouter.post('/auth/demo', requireDatabase, demoLimiter, async (_req, res, next) => {
   try {
-    const { user, session } = await startDemo();
+    const { user, session, seeded } = await startDemo();
     res.status(201).json({
       user,
       ...sessionPayload(res, session),
+      scenario: seeded ? {
+        seeded: true,
+        note: 'Both demo profiles are fictional and start with a scripted history. For Demo Crew Member A, the radiation dose rates replay archived NASA MSL RAD measurements (September 2017) shifted in time; all vital signs, symptoms and lymphocyte counts are invented to demonstrate the logic.',
+        nasaReplay: seeded.radReplay,
+      } : { seeded: false },
       retention: `This demo account and everything entered in it are deleted automatically after ${config.demoRetentionHours} hours. Entries are visible only to this browser session.`,
     });
   } catch (err) { next(err); }

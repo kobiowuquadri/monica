@@ -6,7 +6,7 @@ export const LABELS = {
     resting: 'Resting', post_exercise: 'After exercise', after_waking: 'After waking',
     during_activity: 'During activity', other: 'Other context', unknown: 'Context unknown',
   },
-  source: { manual: 'Manual entry', device_reported: 'Device-reported', self_reported: 'Self-reported' },
+  source: { manual: 'Manual entry', device_reported: 'Device-reported', self_reported: 'Self-reported', nasa_replay: 'NASA MSL RAD replay (demo scenario)' },
   quality: { good: 'Good', uncertain: 'Uncertain', poor: 'Poor', not_stated: 'Quality not stated' },
   severity: { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' },
   level: { info: 'Information', attention: 'Attention', urgent_review: 'Urgent medical review' },

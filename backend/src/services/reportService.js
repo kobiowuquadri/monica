@@ -8,11 +8,13 @@ import { toProfileDto } from '../repositories/profiles.js';
 import { listSources } from '../repositories/nasa.js';
 import { RULES_VERSION, RULE_CATALOGUE } from './rulesEngine.js';
 import { BASELINE_METHODS } from './baselineService.js';
+import { buildHealthBrain } from './healthBrainService.js';
 
 export const PROTOTYPE_LIMITATIONS = [
   'MONICA is a hackathon research prototype. It is not a validated diagnostic, monitoring or treatment system.',
   'All health entries are user-entered or user-reported device values; MONICA has no live sensor connection.',
-  'Rules are deterministic demonstration rules without verified clinical thresholds; no combined health score is produced.',
+  'Rules are deterministic demonstration rules without verified clinical thresholds.',
+  'The Health Brain index (RHI) is a prototype triage index. Its weights, band cut-offs and hard triggers are uncalibrated prototype values awaiting NASA-STD-3001 and clinical review; it is not a diagnosis, a dose estimate or a fitness-for-duty verdict.',
   'No clinician-approved treatment protocol is configured; MONICA does not recommend treatment or medication.',
   'NASA radiation data are historical rover measurements of the Mars surface environment (absorbed dose rate) and are not personal dosimetry.',
   'MONICA has not contacted any person or ground team. This summary must be shared through your mission\'s own channels.',
@@ -22,13 +24,14 @@ export const PROTOTYPE_LIMITATIONS = [
  * Builds a report strictly from the given (ownership-checked) profile's records.
  */
 export async function buildReport({ profile, user, from, to }) {
-  const [checkIns, observations, actions, baselines, history, sources] = await Promise.all([
+  const [checkIns, observations, actions, baselines, history, sources, healthBrain] = await Promise.all([
     listCheckIns(profile.id, { from, to, limit: 500 }),
     listObservations(profile.id, { from, to, limit: 500 }),
     listActions(profile.id, { limit: 500 }),
     allBaselines(profile.id),
     listProfileHistory(profile.id, { limit: 500 }),
     listSources().catch(() => []),
+    buildHealthBrain(profile.id, { from, to }),
   ]);
 
   const periodActions = actions.filter((a) => {
@@ -60,6 +63,7 @@ export async function buildReport({ profile, user, from, to }) {
     period: { from: from ? from.toISOString() : null, to: to ? to.toISOString() : null, timezoneForDisplay: profile.timezone },
     rulesVersion: RULES_VERSION,
     ruleCatalogue: RULE_CATALOGUE,
+    healthBrain,
     baselines: baselines.map((b) => ({ ...b, methodDescription: BASELINE_METHODS[b.method]?.description })),
     checkIns,
     observations,
@@ -70,7 +74,7 @@ export async function buildReport({ profile, user, from, to }) {
     }),
     dataProvenance: {
       healthRecords: 'User-entered. Each reading records whether it was entered manually or reported from a device, its stated quality and measurement context.',
-      calculatedValues: 'Baseline medians and baseline differences are calculated by MONICA from the identified readings using the documented method versions.',
+      calculatedValues: 'Baseline medians, baseline differences and the Health Brain index (RHI) are calculated by MONICA from the identified entries using the documented method versions.',
       nasaSources: sources.filter((s) => usedSourceKeys.has(s.key)),
     },
     missingDataNotes: missing,

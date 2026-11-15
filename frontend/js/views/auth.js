@@ -121,6 +121,6 @@ export function renderAuth(root, { onSignedIn, startupError, mode: initialMode =
         formSlot,
         h('div', { class: 'divider-label', role: 'separator' }, 'or'),
         demoBtn,
-        h('p', { class: 'faint demo-note' }, 'The demo creates two clearly fictional profiles with no health readings. Anything you enter is visible only in your demo session and is deleted automatically after 24 hours.'))));
+        h('p', { class: 'faint demo-note' }, 'The demo creates two clearly fictional profiles with a scripted history, so every screen has data. Dose rates replay archived NASA rover measurements; vital signs and symptoms are invented. Anything you enter is visible only in your demo session and is deleted automatically after 24 hours.'))));
   renderForm();
 }

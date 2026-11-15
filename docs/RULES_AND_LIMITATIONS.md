@@ -35,14 +35,44 @@ Four kinds of output stay **separate** and are never combined:
 | HC-001 | A symptom is rated `severe` by the user | attention | Based only on the self-rating. |
 | HC-002 | The user marks a symptom as needing prompt medical attention | **urgent_review** | Evaluated independently of vitals, so normal readings can never cancel it. |
 | HC-003 | The same symptom appears in an earlier check-in within 72 h | attention | The 72 h window is a MONICA prototype convention, not a clinical rule. |
+| HB-001 | Health Brain index (RHI) is 25 or higher and no hard trigger fired | info (YELLOW) / attention (ORANGE) / **urgent_review** (RED) | Carries the full component breakdown and inputs. |
+| HB-002 | A Health Brain hard trigger fired | **urgent_review** | Overrides the score and sets RED. Lists each trigger and the values behind it. |
 
-All rules are **demonstration rules** (`is_demonstration_rule = true`). They use only recorded data and apply **no clinical thresholds**. MONICA has no verified clinical threshold, so none is configured. Readings are shown descriptively.
+All rules are **demonstration rules** (`is_demonstration_rule = true`). They use only recorded data and apply **no verified clinical thresholds** — none has been configured. The Health Brain cut-offs below are prototype values, labelled as such wherever they appear.
+
+### Health Brain — the Radiation Health Index (RHI)
+
+`backend/src/services/healthBrain.js` (model `rhi-prototype.1`) calculates a 0–100 index for every check-in. It is deterministic and calculated on read, so it always reflects the current model version.
+
+| Component | Weight | Sub-score (0–100) |
+|---|---|---|
+| Exposure | 35% | Dose-rate reading ÷ the median of the profile's earlier dose-rate readings (at least 3 needed). Percent above that reference. |
+| Symptoms | 30% | Worst severity (mild 25, moderate 55, severe 85) + 10 per additional symptom. "No symptoms reported" = 0. |
+| Biomarkers | 20% | Higher of: lymphocyte drop below the median of earlier counts (5% → 0, 40% → 100) and body temperature (37.5 °C → 0, 39.0 °C → 100). |
+| Wellbeing | 15% | Mean of recorded self-ratings: fatigue, reversed sleep quality and mood, sleep duration (≥ 7 h → 0, ≤ 4 h → 100). |
+
+| Band | RHI | Prompt |
+|---|---|---|
+| GREEN | below 25 | Normal. Keep routine. |
+| YELLOW | 25–49 | Watch. Repeat checks. |
+| ORANGE | 50–74 | Act now. Alert ground. |
+| RED | 75+ **or any hard trigger** | Shelter. Call the surgeon. |
+
+Hard triggers (any one sets RED regardless of score): dose rate ≥ 2× the personal reference ("shelter threshold"); vomiting with onset within 2 h of a reading ≥ 1.5× the reference ("spike"); temperature ≥ 38.0 °C together with lymphocytes ≥ 25% below reference; chest discomfort or confusion at any severity.
+
+Limits that are stated in the UI, the report and the API:
+
+- **Every number above is a prototype value chosen by the team.** None is clinically validated and none is a NASA limit. They are to be calibrated against NASA-STD-3001 and clinical review.
+- RHI organises recorded entries. It is **not** a diagnosis, a dose estimate, an inference of radiation injury or a fitness-for-duty verdict.
+- A component with no data is "not assessed" and adds 0 points; coverage is always shown, because a partial index can understate.
+- The band prompts are prompts. MONICA contacts no one.
 
 ### What MONICA deliberately does not do
 
-- No combined health score, "fit / safe for duty" verdict or "all systems normal" message.
-- No weighted "Radiation Health Index" or other composite score.
-- No inference of radiation injury from heart rate, fatigue, nausea or vomiting.
+- No "fit / safe for duty" verdict or "all systems normal" message. A GREEN band says only that nothing recorded raised the index.
+- No composite score other than the labelled prototype RHI described above.
+- No diagnosis of radiation injury. RHI hard triggers flag recorded combinations for review; they do not state a cause.
+- No use of imported NASA rover data as a real person's exposure. Only the fictional demo scenario replays it, and says so on every value.
 - No dose estimate from vomiting timing or any other symptom.
 - No claim that symptom improvement shows recovery from radiation injury.
 - No prescriptions, dosage calculators or medication recommendations. The medication log only records what the user reports taking.
@@ -51,7 +81,7 @@ All rules are **demonstration rules** (`is_demonstration_rule = true`). They use
 - No conversion of absorbed dose (Gy) to effective dose (Sv), and no summing of detector channels.
 - No use of rover data as personal or career dose, and no comparison with NASA's career limit.
 - No conversion of flare class into dose, and no shelter alert from Earth-observed space-weather events.
-- No fabricated or random vitals, radiation curves, lab results or "live" sensor connections. Demo profiles start empty.
+- No fabricated or random vitals, radiation curves, lab results or "live" sensor connections in real accounts. The two demo profiles are fictional and start with a **scripted scenario**, labelled as such: for Demo Crew Member A the dose rates are archived NASA MSL RAD detector E measurements (4–11 September 2017, including the 10–11 September solar particle event) shifted in time, each stored with its original observation time and PDS product; all vital signs, symptoms and lymphocyte counts are invented to demonstrate the logic. The real event was far too small to cause symptoms. See `backend/src/services/demoSeed.js`.
 
 ## Baselines
 

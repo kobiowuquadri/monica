@@ -45,6 +45,8 @@ function emptyDraft(profile) {
     symptomStatus: null,
     symptoms: [],
     wellbeing: { sleepDurationHours: '', sleepQuality: null, fatigueRating: null, moodRating: null },
+    exposure: { enabled: false, value: '', sourceType: 'device_reported', note: '' },
+    lymph: { enabled: false, value: '' },
     medications: [],
     notes: '',
     followUpId: null,
@@ -87,6 +89,18 @@ function buildPayload(d, tz) {
       vitals.push({ metric: 'bp_systolic', value: sys, ...common }, { metric: 'bp_diastolic', value: dia, ...common });
     }
   }
+  let exposure;
+  if (d.exposure?.enabled) {
+    const value = Number(d.exposure.value);
+    if (d.exposure.value === '' || !Number.isFinite(value) || value < 0) errors.push({ step: 1, message: 'Radiation dose rate: enter a number or switch it to "Not measured".' });
+    else exposure = { doseRate: value, sourceType: d.exposure.sourceType, sourceNote: d.exposure.note.trim() || undefined };
+  }
+  let biomarkers;
+  if (d.lymph?.enabled) {
+    const value = Number(d.lymph.value);
+    if (d.lymph.value === '' || !Number.isFinite(value) || value < 0) errors.push({ step: 1, message: 'Lymphocyte count: enter a number or switch it to "Not measured".' });
+    else biomarkers = { lymphocyteCount: value };
+  }
   const symptoms = d.symptoms.map((s) => ({
     code: s.code, severity: s.severity,
     onsetAt: s.onsetLocal ? zonedInputToIso(s.onsetLocal, tz) : undefined,
@@ -108,7 +122,9 @@ function buildPayload(d, tz) {
     measuredAt, activityContext: d.activityContext, contextNote: d.contextNote.trim() || undefined,
     vitals, symptoms, symptomStatus, wellbeing, medications, notes: d.notes.trim() || undefined,
   };
-  if (!vitals.length && !symptoms.length && !Object.keys(wellbeing).length && !medications.length && !payload.notes) {
+  if (exposure) payload.exposure = exposure;
+  if (biomarkers) payload.biomarkers = biomarkers;
+  if (!vitals.length && !symptoms.length && !Object.keys(wellbeing).length && !medications.length && !payload.notes && !exposure && !biomarkers) {
     errors.push({ step: 1, message: 'Add at least one entry — a measurement, symptom, wellbeing rating, medication or note.' });
   }
   return { payload, errors };
@@ -116,7 +132,7 @@ function buildPayload(d, tz) {
 
 function stepForField(field) {
   if (/^(measuredAt|activityContext|contextNote)/.test(field)) return 0;
-  if (/^vitals/.test(field)) return 1;
+  if (/^(vitals|exposure|biomarkers)/.test(field)) return 1;
   if (/^(symptoms|symptomStatus)/.test(field)) return 2;
   return 3;
 }
@@ -129,6 +145,8 @@ export async function render(root, ctx) {
   const store = drafts();
   let d = store[profile.id];
   if (!d || d.result) { d = emptyDraft(profile); store[profile.id] = d; }
+  d.exposure ||= { enabled: false, value: '', sourceType: 'device_reported', note: '' };
+  d.lymph ||= { enabled: false, value: '' };
 
   let followUp = null;
   if (ctx.params.followUp) {
@@ -275,11 +293,63 @@ export async function render(root, ctx) {
     return card;
   }
 
+  /** Optional Health Brain inputs: a personal dose-rate reading and a lymphocyte count. */
+  function inputCard({ v, key, title, iconName, guidance, unit, step, hint, extra }) {
+    const fields = h('div', { class: 'vital-fields stack' });
+    const toggle = h('input', { type: 'checkbox', checked: v.enabled, 'aria-describedby': `${key}-status` });
+    const status = h('span', { id: `${key}-status`, class: 'vital-status' }, v.enabled ? 'Recording' : 'Not measured');
+    function drawFields() {
+      if (!v.enabled) { mount(fields); return; }
+      const valId = uid('val');
+      const val = h('input', { class: 'input', id: valId, type: 'number', inputmode: 'decimal', step, min: 0, value: v.value, required: true });
+      val.addEventListener('input', () => { v.value = val.value; });
+      mount(fields,
+        h('div', { class: 'field' }, h('label', { for: valId }, 'Value'), h('div', { class: 'input-unit' }, val, h('span', { class: 'unit' }, unit)), h('span', { class: 'hint' }, hint)),
+        extra ? extra() : null);
+    }
+    toggle.addEventListener('change', () => { v.enabled = toggle.checked; status.textContent = v.enabled ? 'Recording' : 'Not measured'; card.classList.toggle('on', v.enabled); drawFields(); if (v.enabled) fields.querySelector('input')?.focus(); });
+    drawFields();
+    const card = h('div', { class: ['vital-card', v.enabled && 'on'] },
+      h('div', { class: 'vital-card-head' }, h('div', { class: 'vital-title' }, icon(iconName), h('span', null, title)), h('label', { class: 'switch' }, toggle, status)),
+      h('p', { class: 'guidance' }, guidance),
+      fields);
+    return card;
+  }
+
+  function exposureCard() {
+    const r = ref.exposureInput?.inputRange || { min: 0, max: 100000 };
+    return inputCard({
+      v: d.exposure, key: 'exposure', title: 'Radiation dose rate', iconName: 'radiation', unit: 'µGy/h', step: '0.01',
+      guidance: 'Enter the absorbed dose rate exactly as your personal or area dosimeter displays it. The Health Brain compares it with your own earlier readings; it needs three earlier readings before Exposure can be assessed.',
+      hint: `Accepted input ${r.min}–${r.max} (typo check only)`,
+      extra: () => {
+        const noteId = uid('exp-note');
+        const note = h('input', { class: 'input', id: noteId, value: d.exposure.note, maxlength: 300, placeholder: 'e.g. "Habitat area monitor, sleeping quarters"' });
+        note.addEventListener('input', () => { d.exposure.note = note.value; });
+        return h('div', { class: 'source-fields' },
+          h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Source'),
+            segmented({ name: 'exposure-src', label: 'Source', value: d.exposure.sourceType, fill: true, options: [{ value: 'device_reported', label: 'Device-reported' }, { value: 'manual', label: 'Manual' }], onChange: (val) => { d.exposure.sourceType = val; } })),
+          h('div', { class: 'field' }, h('label', { for: noteId }, 'Dosimeter / location (optional)'), note));
+      },
+    });
+  }
+
+  function lymphCard() {
+    const r = ref.lymphocyteInput?.inputRange || { min: 0, max: 20 };
+    return inputCard({
+      v: d.lymph, key: 'lymph', title: 'Lymphocyte count', iconName: 'flask', unit: '×10⁹/L', step: '0.01',
+      guidance: 'Enter the absolute lymphocyte count from a blood analyser result, if one was taken. The Health Brain compares it with the median of your earlier counts.',
+      hint: `Accepted input ${r.min}–${r.max} (typo check only)`,
+    });
+  }
+
   function stepVitals() {
     return h('div', { class: 'stack-lg' },
       h('div', null, h('h2', { tabindex: '-1' }, 'Vital signs'), h('p', { class: 'muted' }, 'Switch on only what you actually measured. Anything left as "Not measured" is stored as not assessed — never as normal.')),
       callout({ tone: 'info', iconName: 'info', body: 'Only enter values a device actually displays for that measurement. Don\'t derive one measurement from another — for example, don\'t estimate oxygen saturation from heart rate.' }),
       h('div', { class: 'vital-grid' }, vitalCard('heart_rate'), vitalCard('spo2'), vitalCard('temperature'), bpCard(), vitalCard('respiratory_rate')),
+      h('div', null, h('h3', { class: 'hb-inputs-title' }, icon('gauge'), 'Health Brain inputs (optional)'), h('p', { class: 'muted small' }, 'These feed the Exposure and Biomarkers components of the RHI index. Left as "Not measured", those components are shown as not assessed and add no points.')),
+      h('div', { class: 'vital-grid' }, exposureCard(), lymphCard()),
       h('p', { class: 'faint small' }, icon('info', { size: 13 }), ' ', GUIDANCE_REF));
   }
 
@@ -409,6 +479,9 @@ export async function render(root, ctx) {
       h('div', { class: 'review panel tight' },
         reviewRow('Measured', `${fmtDateTime(payload.measuredAt, tz)} · ${LABELS.context[payload.activityContext]}${payload.contextNote ? ` — ${payload.contextNote}` : ''}`, 0),
         reviewRow('Vital signs', vitalsSummary, 1),
+        reviewRow('Health Brain inputs', (payload.exposure || payload.biomarkers)
+          ? [payload.exposure && `Dose rate ${payload.exposure.doseRate} µGy/h (${LABELS.source[payload.exposure.sourceType]})`, payload.biomarkers && `Lymphocytes ${payload.biomarkers.lymphocyteCount} ×10⁹/L`].filter(Boolean).join(' · ')
+          : h('span', { class: 'faint' }, 'Not assessed — no dose rate or lymphocyte count'), 1),
         reviewRow('Symptoms', symSummary, 2),
         reviewRow('Sleep & wellbeing', wbSummary, 3),
         reviewRow('Medications (as reported)', payload.medications.length ? payload.medications.map((m) => `${m.name}${m.amount ? ` (${m.amount})` : ''}`).join(', ') : h('span', { class: 'faint' }, 'None recorded'), 3),
@@ -486,6 +559,7 @@ export async function render(root, ctx) {
               h('div', { class: 'li-main' }, h('a', { class: 'li-title', href: `#/actions?obs=${o.id}` }, o.title), h('div', { class: 'li-meta' }, h('span', null, `${o.ruleId} · v${o.ruleVersion}`), h('span', null, o.suggestedNextStep))))))),
         h('div', { class: 'row' },
           linkButton('Back to overview', '#/overview', { variant: 'primary' }),
+          linkButton('Open Health Brain', '#/health-brain', { iconName: 'gauge' }),
           obs.length ? linkButton('Review observations', '#/actions', { iconName: 'actions' }) : null,
           h('button', { class: 'btn', type: 'button', onclick: () => { ctx.navigate('/check-in'); } }, icon('plus'), 'New check-in'))));
     document.getElementById('saved-title')?.focus();

@@ -81,7 +81,7 @@ export async function render(root, ctx) {
       h('h2', { id: 'learn-h', class: 'section-title' }, 'Learning'),
       cardsSlot),
     panel({ title: 'Transparent rule catalogue', iconName: 'actions', id: 'rules', sub: `Rules version ${state.reference?.rulesVersion || ''}. Every observation shows its rule ID and inputs.`,
-      children: [callout({ tone: 'info', body: 'All current rules are demonstration rules: they use only what was recorded, apply no clinical thresholds, and never produce a combined health score. No treatment protocol is configured.' }), rulesSlot] }),
+      children: [callout({ tone: 'info', body: 'All current rules are demonstration rules: they use only what was recorded, and apply no verified clinical thresholds. The Health Brain index (RHI, rules HB-001 and HB-002) uses prototype weights and cut-offs that still need calibration with NASA-STD-3001 and clinical review. No treatment protocol is configured.' }), rulesSlot] }),
     h('section', { class: 'stack-lg', 'aria-labelledby': 'src-h' },
       h('h2', { id: 'src-h', class: 'section-title' }, 'Source registry'),
       sourcesSlot));

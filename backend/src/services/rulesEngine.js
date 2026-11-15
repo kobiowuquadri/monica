@@ -5,16 +5,18 @@
 // next step, a reference where one applies, and whether the rule is a demonstration rule.
 //
 // Deliberate non-rules (see docs/RULES_AND_LIMITATIONS.md):
-//  - no combined health score, "fit for duty" or "all normal" output;
-//  - no numerical clinical thresholds (none have been verified and configured);
-//  - no radiation-injury inference from heart rate, fatigue, nausea or vomiting;
+//  - no "fit for duty" or "all normal" output. The Health Brain index (RHI, see healthBrain.js)
+//    is a labelled prototype triage index with uncalibrated weights, not a clinical score;
+//  - no verified clinical thresholds (none have been configured; RHI cut-offs are prototype values);
+//  - no radiation-injury diagnosis: RHI triggers flag recorded combinations for review only;
 //  - no dose estimation from symptom timing; no treatment or medication recommendation;
 //  - urgent symptom reports are evaluated independently of vital signs, so normal readings
 //    can never cancel them.
 
 import { VITAL_METRICS, VITAL_METRIC_KEYS, SYMPTOMS } from '../content/metrics.js';
+import { assessCheckIn, HEALTH_BRAIN_VERSION } from './healthBrain.js';
 
-export const RULES_VERSION = '2026.11-demo.1';
+export const RULES_VERSION = '2026.11-demo.2';
 
 const NO_PROTOCOL = 'No clinician-approved treatment protocol is configured in MONICA, so it does not suggest treatment.';
 
@@ -54,6 +56,16 @@ export const RULE_CATALOGUE = [
     title: 'Symptom reported again within 72 hours',
     description: 'Raised when the same symptom was also reported in an earlier check-in within the preceding 72 hours. The 72-hour window is a MONICA prototype convention, not a clinical rule.',
   },
+  {
+    id: 'HB-001', version: '1', category: 'health_concern', demonstration: true,
+    title: 'Health Brain index (RHI) in the YELLOW, ORANGE or RED band',
+    description: 'Raised when the RHI for a check-in is 25 or higher. RHI is a 0–100 prototype triage index: Exposure 35%, Symptoms 30%, Biomarkers 20%, Wellbeing 15%. Weights and band cut-offs are prototype values awaiting calibration with NASA-STD-3001 and clinical review.',
+  },
+  {
+    id: 'HB-002', version: '1', category: 'health_concern', demonstration: true,
+    title: 'Health Brain hard trigger',
+    description: 'Raised when a hard trigger overrides the RHI score and sets the RED band: shelter threshold reached; vomiting within 2 h of a dose-rate spike; fever with lymphocyte drop; chest pain or confusion. Trigger definitions are prototype conventions, not clinical criteria.',
+  },
 ];
 
 const ruleMeta = Object.fromEntries(RULE_CATALOGUE.map((r) => [r.id, r]));
@@ -85,6 +97,7 @@ const CONTEXT_LABEL = {
  * @param {object} checkIn normalised check-in (see validateCheckIn)
  * @param {object} ctx { baselines: Map(metric -> {value, unit, method, sampleCount, establishedAt}),
  *                       recentSymptoms: Array<{code, measuredAt}> from earlier check-ins (excluding this one) }
+ *                       priorCheckIns: earlier check-ins of the profile (enables the Health Brain rules) }
  * @returns {Array<object>} observations
  */
 export function evaluateCheckIn(checkIn, ctx = {}) {
@@ -207,5 +220,41 @@ export function evaluateCheckIn(checkIn, ctx = {}) {
     }
   }
 
+  // ---------------- Health Brain (RHI) ----------------
+  if (ctx.priorCheckIns) out.push(...healthBrainObservations(assessCheckIn(checkIn, ctx.priorCheckIns)));
+
   return out;
+}
+
+const NOT_CONTACTED = 'MONICA has not contacted anyone — use your mission\'s established procedures.';
+
+/** Observations for one Health Brain assessment (none for a GREEN band without triggers). */
+export function healthBrainObservations(a) {
+  const breakdown = a.components.map((c) => (c.assessed ? `${c.label} ${c.points} of ${c.weight}` : `${c.label} not assessed`)).join('; ');
+  const inputs = {
+    modelVersion: HEALTH_BRAIN_VERSION, score: a.score, band: a.band, bandReason: a.bandReason,
+    components: a.components.map((c) => ({ key: c.key, weight: c.weight, assessed: c.assessed, subScore: c.subScore, points: c.points, inputs: c.inputs })),
+    triggers: a.triggers.map((t) => ({ id: t.id, detail: t.detail })),
+    assessedWeight: a.coverage.assessedWeight,
+  };
+  const missing = a.coverage.notAssessed.map((label) => `${label} component (not assessed — adds 0 points)`);
+  missing.push('Calibration of weights and thresholds (prototype values)', 'Clinical assessment');
+  if (a.triggers.length) {
+    return [obs('HB-002', {
+      level: 'urgent_review',
+      title: `Health Brain RED — ${a.triggers.map((t) => t.label).join('; ')}`,
+      explanation: `A hard trigger overrides the score and sets the RED band. ${a.triggers.map((t) => t.detail).join(' ')} RHI score ${a.score} of 100 (${breakdown}). Triggers are prototype conventions that flag recorded combinations for review; they are not a diagnosis.`,
+      triggeringInputs: inputs, missingInformation: missing,
+      suggestedNextStep: `${a.action} ${NOT_CONTACTED} ${NO_PROTOCOL}`,
+    })];
+  }
+  if (a.band === 'green') return [];
+  const level = a.band === 'red' ? 'urgent_review' : a.band === 'orange' ? 'attention' : 'info';
+  return [obs('HB-001', {
+    level,
+    title: `Health Brain ${a.bandLabel} — RHI ${a.score}`,
+    explanation: `RHI is ${a.score} of 100 (${breakdown}). ${a.components.filter((c) => c.assessed && c.points > 0).map((c) => `${c.label}: ${c.summary}`).join(' ')} RHI is a prototype triage index with uncalibrated weights; it is not a diagnosis.`,
+    triggeringInputs: inputs, missingInformation: missing,
+    suggestedNextStep: `${a.action} ${a.band === 'yellow' ? 'Record another check-in to see whether the index is rising or settling.' : NOT_CONTACTED} ${NO_PROTOCOL}`,
+  })];
 }

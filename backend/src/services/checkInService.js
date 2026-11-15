@@ -1,7 +1,7 @@
 import { withTransaction } from '../db/pool.js';
 import { HttpError } from '../middleware/errors.js';
 import { validateCheckIn, fingerprintCheckIn, validateIdempotencyKey } from '../validation/checkIn.js';
-import { findByIdempotencyKey, insertCheckIn, recentSymptomCodes, getCheckIn } from '../repositories/checkIns.js';
+import { findByIdempotencyKey, insertCheckIn, recentSymptomCodes, getCheckIn, listCheckIns } from '../repositories/checkIns.js';
 import { activeBaselines } from '../repositories/baselines.js';
 import { insertObservations, listObservations } from '../repositories/observations.js';
 import { recordAudit } from '../repositories/audit.js';
@@ -21,6 +21,9 @@ export async function createCheckIn({ profile, user, idempotencyKey, body }) {
   const existing = await findByIdempotencyKey(null, profile.id, key);
   if (existing) return replay(existing, fingerprint, profile.id);
 
+  // Earlier check-ins give the Health Brain its exposure and lymphocyte references.
+  const priorCheckIns = await listCheckIns(profile.id, { to: data.measuredAt, limit: 300 });
+
   try {
     const result = await withTransaction(async (client) => {
       const baselineRows = await activeBaselines(client, profile.id);
@@ -31,7 +34,7 @@ export async function createCheckIn({ profile, user, idempotencyKey, body }) {
       const { id } = await insertCheckIn(client, {
         profileId: profile.id, userId: user.id, idempotencyKey: key, fingerprint, data, rulesVersion: RULES_VERSION,
       });
-      const generated = evaluateCheckIn(data, { baselines, recentSymptoms });
+      const generated = evaluateCheckIn(data, { baselines, recentSymptoms, priorCheckIns });
       const observations = await insertObservations(client, profile.id, id, generated);
       await recordAudit(client, {
         userId: user.id, profileId: profile.id, entityType: 'check_in', entityId: id, action: 'check_in.created',

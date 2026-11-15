@@ -90,6 +90,16 @@ export function renderReport(r, tz) {
 
     h('div', { class: 'report-limitations' }, h('strong', null, 'Prototype limitations. '), r.limitations.join(' ')),
 
+    r.healthBrain?.history?.length ? section(`Health Brain index — RHI (${r.healthBrain.history.length})`,
+      h('p', { class: 'small' }, `RHI is a 0–100 prototype triage index (model ${r.healthBrain.model.version}): ${r.healthBrain.model.components.map((c) => `${c.label} ${c.weight}%`).join(', ')}. Bands: ${r.healthBrain.model.bands.map((b) => `${b.label} — ${b.range}`).join('; ')}.`),
+      h('table', { class: 'data compact' },
+        h('thead', null, h('tr', null, ['Check-in', 'RHI', 'Band', 'Exposure /35', 'Symptoms /30', 'Biomarkers /20', 'Wellbeing /15', 'Hard triggers'].map((t) => h('th', { scope: 'col' }, t)))),
+        h('tbody', null, r.healthBrain.history.map((a) => h('tr', null,
+          h('td', null, fmtDateTime(a.measuredAt, tz)), h('td', { class: 'num' }, h('strong', null, a.score)), h('td', null, `${a.bandLabel}${a.bandReason === 'hard_trigger' ? ' (trigger)' : ''}`),
+          ...a.components.map((c) => h('td', { class: 'num' }, c.assessed ? c.points : 'n/a')),
+          h('td', null, a.triggers.length ? a.triggers.map((t) => t.label).join('; ') : '—'))))),
+      h('p', { class: 'small muted' }, `${r.healthBrain.model.disclaimers.join(' ')} "n/a" = component not assessed.`)) : null,
+
     section(`Observations (${obs.length})`,
       obs.length === 0 ? h('p', { class: 'muted' }, 'No observations were generated in this period. This is not a health assessment.')
         : h('table', { class: 'data' },
@@ -112,6 +122,9 @@ export function renderReport(r, tz) {
               h('td', null, v.method ? LABELS.tempMethod[v.method] : '—'), h('td', null, `${LABELS.source[v.sourceType]}${v.deviceLabel ? ` (${v.deviceLabel})` : ''}`), h('td', null, LABELS.quality[v.quality])))))
             : h('p', { class: 'small muted' }, 'Vital signs: not assessed.'),
           h('p', { class: 'small' }, h('strong', null, 'Symptoms: '), c.symptoms.length ? c.symptoms.map((s) => `${s.label} (${s.severity}${s.markedUrgent ? ', marked for prompt attention' : ''}${s.onsetNote ? `, onset ${s.onsetNote}` : s.onsetAt ? `, onset ${fmtDateTime(s.onsetAt, tz)}` : ''})`).join('; ') : LABELS.symptomStatus[c.symptomStatus]),
+          (c.exposure || c.biomarkers) ? h('p', { class: 'small' }, h('strong', null, 'Health Brain inputs: '), [
+            c.exposure ? `dose rate ${c.exposure.doseRate} µGy/h (${LABELS.source[c.exposure.sourceType] || c.exposure.sourceType}${c.exposure.sourceNote ? ` — ${c.exposure.sourceNote}` : ''})` : null,
+            c.biomarkers ? `lymphocytes ${c.biomarkers.lymphocyteCount} ×10⁹/L` : null].filter(Boolean).join('; ')) : null,
           h('p', { class: 'small' }, h('strong', null, 'Sleep & wellbeing (self-rated): '), [
             c.wellbeing.sleepDurationHours !== null ? `sleep ${c.wellbeing.sleepDurationHours} h` : null,
             c.wellbeing.sleepQuality !== null ? `sleep quality ${c.wellbeing.sleepQuality}/5` : null,

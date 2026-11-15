@@ -6,13 +6,15 @@ import { listActions } from '../repositories/actions.js';
 import { radiationCoverage, spaceWeatherCoverage } from '../repositories/nasa.js';
 import { toProfileDto } from '../repositories/profiles.js';
 import { LEARNING_CARDS } from '../content/learning.js';
+import { buildHealthBrain } from './healthBrainService.js';
 
 /**
- * Overview is assembled from separate categories that are never merged into a score:
- * health observations, data quality, personal-trend context, environment (NASA, historical).
+ * Overview is assembled from separate categories: the Health Brain index (a labelled prototype
+ * triage index), health observations, data quality, personal-trend context and environment
+ * (NASA, historical). NASA environment data is never merged into personal records.
  */
 export async function buildOverview(profile) {
-  const [latest, wellbeing, recent, counts, quality, baselines, openObs, obsCounts, planned, radCov, swCov] = await Promise.all([
+  const [latest, wellbeing, recent, counts, quality, baselines, openObs, obsCounts, planned, radCov, swCov, healthBrain] = await Promise.all([
     latestVitals(profile.id),
     latestWellbeing(profile.id),
     listCheckIns(profile.id, { limit: 5 }),
@@ -24,6 +26,7 @@ export async function buildOverview(profile) {
     listActions(profile.id, { status: 'planned', limit: 6 }),
     radiationCoverage(),
     spaceWeatherCoverage(),
+    buildHealthBrain(profile.id),
   ]);
 
   const latestByMetric = Object.fromEntries(latest.map((r) => [r.metric, r]));
@@ -59,6 +62,7 @@ export async function buildOverview(profile) {
     generatedAt: new Date().toISOString(),
     profile: toProfileDto(profile),
     checkIns: { total: counts.n, lastMeasuredAt: counts.last },
+    healthBrain,
     vitals,
     wellbeing: wb,
     baselines,

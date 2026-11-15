@@ -18,6 +18,7 @@ import { getTrend, TREND_METRICS } from '../services/trendsService.js';
 import { establishBaseline, retireBaseline, BASELINE_METHODS } from '../services/baselineService.js';
 import { acknowledge, resolve, createAction, patchAction } from '../services/actionService.js';
 import { buildReport } from '../services/reportService.js';
+import { buildHealthBrain } from '../services/healthBrainService.js';
 
 export const profilesRouter = Router();
 profilesRouter.use('/profiles', requireDatabase, requireAuth, writeLimiter);
@@ -56,6 +57,10 @@ profilesRouter.patch('/profiles/:id', loadOwnedProfile, wrap(async (req, res) =>
 
 profilesRouter.get('/profiles/:id/overview', loadOwnedProfile, wrap(async (req, res) => {
   res.json(await buildOverview(req.profile));
+}));
+
+profilesRouter.get('/profiles/:id/health-brain', loadOwnedProfile, wrap(async (req, res) => {
+  res.json(await buildHealthBrain(req.profile.id));
 }));
 
 // ---------------- Check-ins ----------------

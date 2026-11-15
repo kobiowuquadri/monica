@@ -10,10 +10,13 @@ export async function insertCheckIn(client, { profileId, userId, idempotencyKey,
   const w = data.wellbeing;
   const { rows } = await client.query(
     `INSERT INTO check_ins (profile_id, user_id, idempotency_key, request_fingerprint, measured_at, activity_context, context_note,
-        sleep_duration_hours, sleep_quality, fatigue_rating, mood_rating, notes, rules_version, symptom_status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, created_at`,
+        sleep_duration_hours, sleep_quality, fatigue_rating, mood_rating, notes, rules_version, symptom_status,
+        exposure_dose_rate, exposure_unit, exposure_source_type, exposure_source_note, lymphocyte_count)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id, created_at`,
     [profileId, userId, idempotencyKey, fingerprint, data.measuredAt, data.activityContext, data.contextNote,
-      w.sleepDurationHours, w.sleepQuality, w.fatigueRating, w.moodRating, data.notes, rulesVersion, data.symptomStatus || 'not_assessed'],
+      w.sleepDurationHours, w.sleepQuality, w.fatigueRating, w.moodRating, data.notes, rulesVersion, data.symptomStatus || 'not_assessed',
+      data.exposure?.doseRate ?? null, data.exposure ? data.exposure.unit : null, data.exposure?.sourceType ?? null, data.exposure?.sourceNote ?? null,
+      data.biomarkers?.lymphocyteCount ?? null],
   );
   const checkInId = rows[0].id;
   for (const r of data.vitals) {
@@ -65,6 +68,10 @@ function checkInRowToDto(c) {
       fatigueRating: c.fatigue_rating,
       moodRating: c.mood_rating,
     },
+    exposure: c.exposure_dose_rate === null || c.exposure_dose_rate === undefined ? null : {
+      doseRate: c.exposure_dose_rate, unit: c.exposure_unit, sourceType: c.exposure_source_type, sourceNote: c.exposure_source_note,
+    },
+    biomarkers: c.lymphocyte_count === null || c.lymphocyte_count === undefined ? null : { lymphocyteCount: c.lymphocyte_count },
     notes: c.notes,
     rulesVersion: c.rules_version,
   };

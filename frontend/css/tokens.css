@@ -36,6 +36,16 @@
   --info: #6aa6f0;
   --info-soft: rgba(106, 166, 240, 0.12);
 
+  /* Health Brain bands (always paired with the band name and an icon) and component hues */
+  --band-green: #46c98b;
+  --band-yellow: #f2c94c;
+  --band-orange: #f59145;
+  --band-red: #f4706f;
+  --hb-exposure: #6aa6f0;
+  --hb-symptoms: #4fd1bd;
+  --hb-biomarkers: #b79cf5;
+  --hb-wellbeing: #d8d2c4;
+
   /* Data series (validated categorical slots 1–3, dark mode, against --surface) */
   --series-1: #3987e5;
   --series-2: #d95926;

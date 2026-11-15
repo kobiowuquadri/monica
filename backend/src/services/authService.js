@@ -9,6 +9,7 @@ import { insertProfile } from '../repositories/profiles.js';
 import { recordAudit } from '../repositories/audit.js';
 import { hashPassword, verifyPassword, dummyVerify } from './passwords.js';
 import { isValidTimezone } from '../validation/profile.js';
+import { seedDemoData, DEMO_SCENARIO_NOTE } from './demoSeed.js';
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 
@@ -73,28 +74,41 @@ export async function login(body) {
 }
 
 /**
- * Starts an isolated public demo account with two clearly fictional profiles and no health
- * records. Everything created under it is deleted after DEMO_RETENTION_HOURS.
+ * Starts an isolated public demo account with two clearly fictional profiles that carry a
+ * scripted scenario history (see demoSeed.js for what is real NASA data and what is invented).
+ * Everything created under it is deleted after DEMO_RETENTION_HOURS.
  */
-export async function startDemo() {
+export async function startDemo({ seed = true } = {}) {
   const suffix = randomBytes(9).toString('base64url');
   const email = `demo-${suffix}@demo.monica.invalid`;
   // Demo accounts cannot sign in with a password; the unusable hash is random.
   const passwordHash = `disabled$${randomBytes(24).toString('base64url')}`;
   const demoExpiresAt = new Date(Date.now() + config.demoRetentionHours * 3600_000);
-  return withTransaction(async (client) => {
+  const created = await withTransaction(async (client) => {
     const user = await insertUser(client, { email, passwordHash, displayName: 'Demo visitor', isDemo: true, demoExpiresAt });
     const profiles = [
-      { displayName: 'Demo Crew Member A', roleTitle: 'Fictional flight engineer', missionName: 'Fictional Mars surface mission (demo)', missionPhase: 'Surface operations', timezone: 'UTC', isFictional: true, notes: 'Fictional demo identity. Contains no real person\'s data.' },
-      { displayName: 'Demo Crew Member B', roleTitle: 'Fictional mission specialist', missionName: 'Fictional Mars transit (demo)', missionPhase: 'Interplanetary cruise', timezone: 'UTC', isFictional: true, notes: 'Fictional demo identity. Contains no real person\'s data.' },
+      { displayName: 'Demo Crew Member A', roleTitle: 'Fictional flight engineer', missionName: 'Fictional Mars surface mission (demo)', missionPhase: 'Surface operations', timezone: 'UTC', isFictional: true, notes: seed ? DEMO_SCENARIO_NOTE : 'Fictional demo identity. Contains no real person\'s data.' },
+      { displayName: 'Demo Crew Member B', roleTitle: 'Fictional mission specialist', missionName: 'Fictional Mars transit (demo)', missionPhase: 'Interplanetary cruise', timezone: 'UTC', isFictional: true, notes: seed ? 'Fictional demo identity with a scripted history. All entries are invented to demonstrate the logic; no dose-rate readings are recorded for this profile. No real person\'s data.' : 'Fictional demo identity. Contains no real person\'s data.' },
     ];
+    const rows = [];
     for (const p of profiles) {
       const row = await insertProfile(client, user.id, p);
+      rows.push(row);
       await recordAudit(client, { userId: user.id, profileId: row.id, entityType: 'profile', entityId: row.id, action: 'profile.created', metadata: { fictional: true } });
     }
     const session = await createSession(user.id, client);
-    return { user: userDto(user), session };
+    return { user, session, rows };
   });
+  let seeded = null;
+  if (seed) {
+    // The scenario is a convenience: if seeding fails the demo still starts, just empty.
+    try {
+      seeded = await seedDemoData({ userId: created.user.id, profiles: { a: created.rows[0], b: created.rows[1] } });
+    } catch (err) {
+      console.error('[demo] scenario seeding failed:', err.code || err.message);
+    }
+  }
+  return { user: userDto(created.user), session: created.session, seeded };
 }
 
 /**

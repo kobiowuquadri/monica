@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { Validator, rejectUnknownKeys } from './validate.js';
 import { HttpError } from '../middleware/errors.js';
 import {
-  VITAL_METRICS, ACTIVITY_CONTEXTS, SOURCE_TYPES, QUALITY_VALUES, SEVERITIES, SYMPTOMS, SYMPTOM_CODES, WELLBEING_METRICS,
+  VITAL_METRICS, ACTIVITY_CONTEXTS, SOURCE_TYPES, QUALITY_VALUES, SEVERITIES, SYMPTOMS, SYMPTOM_CODES, WELLBEING_METRICS, EXPOSURE_INPUT, LYMPHOCYTE_INPUT,
 } from '../content/metrics.js';
 
 const IDEMPOTENCY_RE = /^[A-Za-z0-9_-]{16,100}$/;
@@ -21,7 +21,7 @@ export function validateIdempotencyKey(value) {
 export function validateCheckIn(body) {
   const v = new Validator();
   const b = v.object('body', body);
-  rejectUnknownKeys(v, '', b, ['measuredAt', 'activityContext', 'contextNote', 'vitals', 'symptoms', 'symptomStatus', 'wellbeing', 'medications', 'notes']);
+  rejectUnknownKeys(v, '', b, ['measuredAt', 'activityContext', 'contextNote', 'vitals', 'symptoms', 'symptomStatus', 'wellbeing', 'medications', 'notes', 'exposure', 'biomarkers']);
 
   const measuredAt = v.timestamp('measuredAt', b.measuredAt, { required: true, notFutureMinutes: 5, notOlderThanDays: 365 });
   const activityContext = v.enumValue('activityContext', b.activityContext, ACTIVITY_CONTEXTS, { required: true });
@@ -113,6 +113,24 @@ export function validateCheckIn(body) {
     moodRating: v.number('wellbeing.moodRating', w.moodRating, { ...wd.mood_rating.range, integer: true }),
   };
 
+  // ---- Health Brain inputs (optional; absent means "not assessed") ----
+  let exposure = null;
+  if (b.exposure !== undefined && b.exposure !== null) {
+    const e = v.object('exposure', b.exposure);
+    rejectUnknownKeys(v, 'exposure', e, ['doseRate', 'sourceType', 'sourceNote']);
+    const doseRate = v.number('exposure.doseRate', e.doseRate, { required: true, ...EXPOSURE_INPUT.inputRange, maxDecimals: EXPOSURE_INPUT.maxDecimals });
+    const sourceType = v.enumValue('exposure.sourceType', e.sourceType, EXPOSURE_INPUT.sourceTypes, { required: true });
+    const sourceNote = v.string('exposure.sourceNote', e.sourceNote, { max: 300 });
+    exposure = { doseRate, unit: EXPOSURE_INPUT.unit, sourceType, sourceNote };
+  }
+  let biomarkers = null;
+  if (b.biomarkers !== undefined && b.biomarkers !== null) {
+    const bm = v.object('biomarkers', b.biomarkers);
+    rejectUnknownKeys(v, 'biomarkers', bm, ['lymphocyteCount']);
+    const lymphocyteCount = v.number('biomarkers.lymphocyteCount', bm.lymphocyteCount, { required: true, ...LYMPHOCYTE_INPUT.inputRange, maxDecimals: LYMPHOCYTE_INPUT.maxDecimals });
+    biomarkers = { lymphocyteCount };
+  }
+
   // ---- Medications (self-reported log; never recommended by MONICA) ----
   const medications = [];
   v.array('medications', b.medications, { max: 20 }).forEach((raw, i) => {
@@ -126,12 +144,16 @@ export function validateCheckIn(body) {
   });
 
   const hasWellbeing = Object.values(wellbeing).some((x) => x !== null);
-  if (v.ok() && vitals.length === 0 && symptoms.length === 0 && !hasWellbeing && medications.length === 0 && !notes) {
-    v.add('body', 'A check-in needs at least one entry: a measurement, symptom, wellbeing rating, medication or note.');
+  if (v.ok() && vitals.length === 0 && symptoms.length === 0 && !hasWellbeing && medications.length === 0 && !notes && !exposure && !biomarkers) {
+    v.add('body', 'A check-in needs at least one entry: a measurement, symptom, wellbeing rating, dose-rate reading, medication or note.');
   }
 
   v.throwIfInvalid();
-  return { measuredAt, activityContext, contextNote, notes, vitals, symptoms, symptomStatus, wellbeing, medications };
+  const out = { measuredAt, activityContext, contextNote, notes, vitals, symptoms, symptomStatus, wellbeing, medications };
+  // Added only when present so fingerprints of check-ins without these inputs are unchanged.
+  if (exposure) out.exposure = exposure;
+  if (biomarkers) out.biomarkers = biomarkers;
+  return out;
 }
 
 /** Stable fingerprint of the normalised payload; detects idempotency-key reuse with different data. */
